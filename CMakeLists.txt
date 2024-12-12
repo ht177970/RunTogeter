@@ -25,8 +25,8 @@ else()
     add_compile_definitions(NDEBUG)
     # 您可以在此處加入 release 模式下的編譯選項 (如優化旗標)
 endif()
+
 add_compile_definitions(_CONSOLE)
-add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
 
 # ------------------------------------------------------------
 # 將所有原本在 vcxproj 中的 source 和 header 檔加入
@@ -63,15 +63,23 @@ set(HEADERS
     ResourceHolder.hpp
     Ingamebar.hpp
 )
-# Add the asset directories for debugging purposes
-
 
 # ------------------------------------------------------------
 # 建立可執行檔
 # ------------------------------------------------------------
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-
+#-------------------------------------------------------------
+#將img ,sound 和 dont copy 到 exe
 # ------------------------------------------------------------
+set(IMG_DIR "${CMAKE_SOURCE_DIR}/img")
+set(SOUND_DIR "${CMAKE_SOURCE_DIR}/sound")
+# Define destination directory
+set(OUTPUT_DIR "${CMAKE_BINARY_DIR}")
+
+# Function to copy a directory
+file(COPY ${CMAKE_SOURCE_DIR}/img DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/sound DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/font.ttf DESTINATION ${CMAKE_BINARY_DIR})
 # 設定 include 路徑（如果需要特定 include 路徑）
 # 在 Windows 時您可能需要 `include_directories()` 指向 SFML 的 include 路徑，
 # 但在 Linux 下若使用 find_package 通常不需要手動指定。
