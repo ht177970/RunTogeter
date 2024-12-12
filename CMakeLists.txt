@@ -71,12 +71,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 #-------------------------------------------------------------
 #將img ,sound 和 dont copy 到 exe
 # ------------------------------------------------------------
-set(IMG_DIR "${CMAKE_SOURCE_DIR}/img")
-set(SOUND_DIR "${CMAKE_SOURCE_DIR}/sound")
-# Define destination directory
-set(OUTPUT_DIR "${CMAKE_BINARY_DIR}")
 
-# Function to copy a directory
 file(COPY ${CMAKE_SOURCE_DIR}/img DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/sound DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/font.ttf DESTINATION ${CMAKE_BINARY_DIR})
