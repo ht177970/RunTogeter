@@ -1,36 +1,91 @@
 ﻿cmake_minimum_required(VERSION 3.10)
 
-# 專案名稱，可以根據您的需求更改
+# Project name
 project(My2DPlatformerSFML LANGUAGES CXX)
 
-# 設定 C++ 標準（例如 C++17）
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ------------------------------------------------------------
-# 尋找 SFML
+# Find SFML
 # ------------------------------------------------------------
-# 假設您在 WSL (Ubuntu 或其他 Linux 環境) 中安裝了 SFML：
-# sudo apt-get install libsfml-dev
-# find_package 會自動尋找 SFML 的 include 和 lib
 find_package(SFML 2.5 COMPONENTS system window graphics audio REQUIRED)
 
 # ------------------------------------------------------------
-# 設定 Debug 和 Release 模式下的編譯選項 (類似於 vcxproj 定義)
+# Build unp13e Library
 # ------------------------------------------------------------
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(_DEBUG)
-    # 您可以在此處加入其他 debug 模式下的編譯選項
-else()
-    add_compile_definitions(NDEBUG)
-    # 您可以在此處加入 release 模式下的編譯選項 (如優化旗標)
+set(UNP13E_DIR ${CMAKE_SOURCE_DIR}/unpv13e)
+
+# Run `./configure` in the src directory
+execute_process(
+    COMMAND ./configure
+    WORKING_DIRECTORY ${UNP13E_DIR}
+    RESULT_VARIABLE CONFIGURE_RESULT
+)
+
+if(NOT CONFIGURE_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to configure unp13e.")
 endif()
 
-add_compile_definitions(_CONSOLE)
+# Build the libraries in unp13e
+execute_process(
+    COMMAND make
+    WORKING_DIRECTORY ${UNP13E_DIR}/lib
+    RESULT_VARIABLE LIB_MAKE_RESULT
+)
+
+if(NOT LIB_MAKE_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to build unp13e lib.")
+endif()
+
+execute_process(
+    COMMAND make
+    WORKING_DIRECTORY ${UNP13E_DIR}/libfree
+    RESULT_VARIABLE LIBFREE_MAKE_RESULT
+)
+
+#if(NOT LIBFREE_MAKE_RESULT EQUAL 0)
+#    message(FATAL_ERROR "Failed to build unp13e libfree.")
+#endif()
+
+# Optional: Build libroute if system supports 4.4BSD-style routing sockets
+if(NOT WIN32 AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    execute_process(
+        COMMAND make
+        WORKING_DIRECTORY ${UNP13E_DIR}/libroute
+        RESULT_VARIABLE LIBROUTE_MAKE_RESULT
+    )
+
+    if(NOT LIBROUTE_MAKE_RESULT EQUAL 0)
+        message(WARNING "Failed to build unp13e libroute. Skipping.")
+    endif()
+endif()
 
 # ------------------------------------------------------------
-# 將所有原本在 vcxproj 中的 source 和 header 檔加入
-# 您可以依實際檔案路徑調整。
+# Add unp13e Libraries and Headers
+# ------------------------------------------------------------
+# Add the generated libraries to the project
+add_library(unp_lib STATIC IMPORTED)
+set_target_properties(unp_lib PROPERTIES IMPORTED_LOCATION ${UNP13E_DIR}/lib/libunp.a)
+
+add_library(unp_libfree STATIC IMPORTED)
+set_target_properties(unp_libfree PROPERTIES IMPORTED_LOCATION ${UNP13E_DIR}/libfree/libunpfree.a)
+
+# Include headers
+include_directories(${UNP13E_DIR}/lib ${UNP13E_DIR}/libfree)
+
+# Optional: Add libroute if it exists
+if(EXISTS ${UNP13E_DIR}/libroute/libunproute.a)
+    add_library(unp_libroute STATIC IMPORTED)
+    set_target_properties(unp_libroute PROPERTIES IMPORTED_LOCATION ${UNP13E_DIR}/libroute/libunproute.a)
+    set(UNP_LIBRARIES unp_lib unp_libfree unp_libroute)
+else()
+    set(UNP_LIBRARIES unp_lib unp_libfree)
+endif()
+
+# ------------------------------------------------------------
+# Add Executable and Link Libraries
 # ------------------------------------------------------------
 set(SOURCES
     Bullet.cpp
@@ -64,45 +119,14 @@ set(HEADERS
     Ingamebar.hpp
 )
 
-# ------------------------------------------------------------
-# 建立可執行檔
-# ------------------------------------------------------------
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-#-------------------------------------------------------------
-#將img ,sound 和 dont copy 到 exe
-# ------------------------------------------------------------
 
+# Link SFML and unp13e libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE sfml-system sfml-window sfml-graphics sfml-audio ${UNP_LIBRARIES})
+
+# ------------------------------------------------------------
+# Copy Resources (img, sound, font)
+# ------------------------------------------------------------
 file(COPY ${CMAKE_SOURCE_DIR}/img DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/sound DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/font.ttf DESTINATION ${CMAKE_BINARY_DIR})
-# 設定 include 路徑（如果需要特定 include 路徑）
-# 在 Windows 時您可能需要 `include_directories()` 指向 SFML 的 include 路徑，
-# 但在 Linux 下若使用 find_package 通常不需要手動指定。
-# 
-# 如果你仍需要指定，可如此加入:
-# include_directories(/path/to/SFML/include)
-# ------------------------------------------------------------
-
-# ------------------------------------------------------------
-# 連結 SFML 函式庫
-# ------------------------------------------------------------
-target_link_libraries(${PROJECT_NAME} PRIVATE sfml-system sfml-window sfml-graphics sfml-audio)
-
-# 如果需要其他預處理器定義（例如：WIN32），可根據實際需求加上：
-# target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32)
-
-# 如果您需要加上 Windows 平台才有的定義，可使用條件式：
-# if(WIN32)
-#     target_compile_definitions(${PROJECT_NAME} PRIVATE WIN32)
-# endif()
-
-# ------------------------------------------------------------
-# 若您需要類似 vcxproj 中針對 release/debug 模式的最佳化旗標：
-# 可使用 CMake 的 build-type 切換：
-# cmake -DCMAKE_BUILD_TYPE=Release ..
-# 或在 CMakeLists.txt 中設定不同模式的選項:
-# 
-# set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-# ------------------------------------------------------------
-
