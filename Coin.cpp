@@ -1,7 +1,8 @@
 #include "Coin.hpp"
 
 namespace rpf {
-	Coin::Coin(ResourceHolder* rh, int x, int y) {
+	Coin::Coin(ResourceHolder* rh, int x, int y, int id) {
+		this->id = id;
 		this->rh = rh;
 		this->update();
 		spr.setPosition(x * rh->tile_size, y * rh->tile_size);

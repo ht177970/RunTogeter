@@ -7,7 +7,7 @@ namespace rpf {
 	class Game;
 	class Enemy {
 	public:
-		Enemy(ResourceHolder* rh, Game* g, int x, int y);
+		Enemy(ResourceHolder* rh, Game* g, int x, int y, int id);
 		~Enemy() = default;
 		bool AI = false;
 		bool killed = false;
@@ -15,8 +15,10 @@ namespace rpf {
 		void dead();
 		bool isDead() { return killed && anim_index >= 30; }
 		int getScore() { return AI ? 50 : 20; }
+		int getId() { return id; }
 		sf::Sprite& getDrawable() { return spr; }
 	private:
+		int id;
 		const int anim_speed = 5;
 		int anim_index = 0;
 		int ix, iy;
