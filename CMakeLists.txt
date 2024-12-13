@@ -4,7 +4,7 @@
 project(My2DPlatformerSFML LANGUAGES CXX)
 
 # 設定 C++ 標準（例如 C++17）
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ------------------------------------------------------------
@@ -27,6 +27,7 @@ execute_process(
 include_directories(
     "${CMAKE_SOURCE_DIR}/unpv13e/lib"
     "${CMAKE_SOURCE_DIR}/unpv13e/libfree"
+    "${CMAKE_SOURCE_DIR}/unpv13e"
 )
 # Combine the source files
 # ------------------------------------------------------------
