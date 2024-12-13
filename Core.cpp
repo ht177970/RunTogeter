@@ -16,7 +16,7 @@ namespace rpf {
 	}
 	
 	void Core::Run() {
-		switchMode(Mode::IN_GAME);//start with ...
+		switchMode(Mode::MAIN_MENU);//start with ...
 		while (window.isOpen())
 			this->update();
 	}
@@ -40,6 +40,8 @@ namespace rpf {
 				{
 					size.y = size.x * heightRatio;
 				}
+				rh.s_width = size.x;
+				rh.s_height = size.y;
 				window.setSize(size);
 			}
 			else
@@ -50,6 +52,9 @@ namespace rpf {
 
 	void Core::switchMode(Mode mode) {
 		switch (mode) {
+		case Mode::MAIN_MENU:
+			now = new MainMenu(&rm, &rh);
+			break;
 		case Mode::IN_GAME:
 			now = new Game(&rm, &rh);
 			break;

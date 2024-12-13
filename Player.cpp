@@ -11,7 +11,19 @@ namespace rpf {
 	}
 
 	void Player::spawn(int x, int y) {
+		lastspawn_x = x * rh->tile_size * rh->trans;
+		lastspawn_y = y * rh->tile_size * rh->trans;
 		this->current_sprite.setPosition(x * rh->tile_size * rh->trans, y * rh->tile_size * rh->trans);
+		lastview_x = rh->view->getCenter().x;
+		lastview_y = rh->view->getCenter().y;
+	}
+
+	void Player::NEWspawn(int x, int y) {
+		this->current_sprite.move(x, y);
+		lastspawn_x = this->current_sprite.getPosition().x;
+		lastspawn_y = this->current_sprite.getPosition().y;
+		lastview_x = rh->view->getCenter().x;
+		lastview_y = rh->view->getCenter().y;
 	}
 
 	void Player::KeyPress(sf::Keyboard::Key k) {
@@ -96,7 +108,7 @@ namespace rpf {
 		if (space_key && !shooting) {
 			/*bool move = true;
 			int dx = flip ? current_tile_x_right + 1 : current_tile_x_left - 1;
-			double ix = flip ? -(current_sprite.getGlobalBounds().left + current_sprite.getGlobalBounds().width) : rh->tile_size - current_sprite.getGlobalBounds().left;
+			float ix = flip ? -(current_sprite.getGlobalBounds().left + current_sprite.getGlobalBounds().width) : rh->tile_size - current_sprite.getGlobalBounds().left;
 			for (int i = current_tile_y_top; i <= current_tile_y_bottom; i++)
 				if (!_game->is_empty_block(dx, i))
 					move = false;
@@ -127,12 +139,12 @@ namespace rpf {
 
 	void Player::check_move_x() {
 		int dx = x_speed > 0 ? current_tile_x_right + 1 : current_tile_x_left - 1;
-		double ix = x_speed > 0 ? -(current_sprite.getGlobalBounds().left + current_sprite.getGlobalBounds().width) : rh->tile_size - current_sprite.getGlobalBounds().left;
+		float ix = x_speed > 0 ? -(current_sprite.getGlobalBounds().left + current_sprite.getGlobalBounds().width) : rh->tile_size - current_sprite.getGlobalBounds().left;
 		for (int i = current_tile_y_top; i <= current_tile_y_bottom; i++)
 		{
 			if (!_game->is_empty_block(dx, i))
 			{
-				double dist_to_obstacle = _game->get_cord_of_tile(dx, i).x + ix;
+				float dist_to_obstacle = _game->get_cord_of_tile(dx, i).x + ix;
 				if (x_speed > 0 && x_speed > dist_to_obstacle) {
 					current_sprite.move(dist_to_obstacle - 1, 0);
 					return;
@@ -153,7 +165,7 @@ namespace rpf {
 		{
 			if (!_game->is_empty_block(i, current_tile_y_bottom + dy))
 			{
-				double dist_to_obstacle = _game->get_cord_of_tile(i, current_tile_y_bottom + dy).y - (current_sprite.getGlobalBounds().top + current_sprite.getGlobalBounds().height);
+				float dist_to_obstacle = _game->get_cord_of_tile(i, current_tile_y_bottom + dy).y - (current_sprite.getGlobalBounds().top + current_sprite.getGlobalBounds().height);
 				y_speed = (y_speed < dist_to_obstacle) ? y_speed : (dist_to_obstacle - 1);
 				if (dist_to_obstacle < 2) {
 					y_speed = 0;
@@ -217,7 +229,9 @@ namespace rpf {
 					return;
 				delay = anim_index = x_speed = y_speed = 0;
 				killed = flip = shooting = false;
-				_game->resetLvl();
+				//back_map->setPosition(-1000, 0);
+				current_sprite.setPosition(lastspawn_x, lastspawn_y);
+				rh->view->setCenter(lastview_x, lastview_y);
 			}
 			return;
 		}

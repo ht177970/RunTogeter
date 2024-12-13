@@ -8,7 +8,7 @@ namespace rpf {
 	void Game::init_level() {
 		int id = 0;
 		current_level.clear();
-
+		bool f = 0;
 		for (int i = 0; i < rh->maps[level].getSize().y; i++)
 		{
 			for (int j = 0; j < rh->maps[level].getSize().x; j++)
@@ -34,11 +34,20 @@ namespace rpf {
 					rm->addGraphics(&coin->getDrawable());
 					break;
 				}
-				case 10676479://end(portal)
-					this->portal = new Portal(rh, j, i);
-					rm->addGraphics(&portal->getDrawable());
-					px = j, py = i;
-					break;
+				//case 10676479://end(portal)
+				//	if (f == 0) {
+				//		this->portal = new Portal(rh, j, i);
+				//		rm->addGraphics(&portal->getDrawable());
+				//		//px = j, py = i;
+				//		xs.push_back(j);
+				//		ys.push_back(i);
+				//	}
+				//	else {
+				//		toxs.push_back(j);
+				//		toys.push_back(i);
+				//	}
+				//	f = !f;
+				//	break;
 				case 3978044671:
 				case 2281707007:
 				{
@@ -54,6 +63,36 @@ namespace rpf {
 				current_level.push_back(id);
 			}
 		}
+		for (int j = 0; j < rh->maps[level].getSize().x; j++)
+		{
+			for (int i = 0; i < rh->maps[level].getSize().y; i++)
+			{
+				unsigned int c = rh->maps[level].getPixel(j, i).toInteger();
+				id = -1;
+				switch (c) {
+				case 10676479://end(portal)
+					if (f == 0) {
+						this->portal = new Portal(rh, j, i);
+						rm->addGraphics(&portal->getDrawable());
+						//px = j, py = i;
+						xs.push_back(j);
+						ys.push_back(i);
+					}
+					else {
+						toxs.push_back(j);
+						toys.push_back(i);
+					}
+					f = !f;
+					break;
+
+				}
+
+				current_level.push_back(id);
+			}
+		}
+		nowp = 0;
+		px = xs[nowp];
+		py = ys[nowp];
 		//sf::Color col = rh->maps[level].getPixel(6, 14);//
 		//std::cout << col.toInteger() << '\n';//
 		map.load("img/Tiles.png", sf::Vector2u(64, 64), current_level, rh->maps[level].getSize().x, rh->maps[level].getSize().y);
@@ -237,9 +276,17 @@ namespace rpf {
 					  py == (int)(p.getDrawable().getGlobalBounds().top + 
 						  p.getDrawable().getGlobalBounds().height -
 						  map.getPosition().y) / rh->tile_size) {
-			//portal && p.getDrawable().getGlobalBounds().intersects(portal->getDrawable().getGlobalBounds())) {
 			p.score += (level + 1) * 400;
-			this->nextLvl();
+			rh->view->move((toxs[nowp] - px) * 48, 0);
+			p.NEWspawn((toxs[nowp] - px) * 48, (toys[nowp] - py) * 48);
+			nowp++;
+			if (nowp < xs.size()) {
+				px = xs[nowp];
+				py = ys[nowp];
+			}
+			else {
+				//Win
+			}
 		}
 #ifdef RDEBUG
 		if (test++ == 10) {
@@ -288,8 +335,20 @@ namespace rpf {
 			return;
 		}
 		rm->clear();
+		for (Bullet* bullet : bullets) {
+			//bullet->~Bullet();
+			free(bullet);
+		}
 		bullets.clear();
+		for (Coin* coin : coins) {
+			//coin->~Coin();
+			free(coin);
+		}
 		coins.clear();
+		for (Enemy* enemy : enemies) {
+			//enemy->~Enemy();
+			free(enemy);
+		}
 		enemies.clear();
 		portal = nullptr;
 		this->init_render();

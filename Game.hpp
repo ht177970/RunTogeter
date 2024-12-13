@@ -37,6 +37,9 @@ namespace rpf {
 		std::vector<Bullet*> bullets;
 		std::vector<Coin*> coins;
 		std::vector<Enemy*> enemies;
+		int nowp = 0;
+		std::vector<int> xs, ys;//add
+		std::vector<int> toxs, toys;//add
 		Portal* portal = nullptr;
 		int level = 0;
 		int px = -1, py = -1;

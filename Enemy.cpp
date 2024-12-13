@@ -23,11 +23,11 @@ namespace rpf {
 		if (anim_index >= 2 * anim_speed)
 			anim_index = 0;
 		spr.setTexture(rh->enemy[anim_index++ / anim_speed]);
-		if (AI) {
+		/*if (AI) {
 			update_current_tiles();
 			check_move_x();
 			spr.setTextureRect(getFaceRect(spr.getTexture()->getSize()));
-		}
+		}*/
 	}
 
 	void Enemy::dead() {
@@ -38,12 +38,12 @@ namespace rpf {
 	void Enemy::check_move_x() {
 		x_speed = flip ? -unit_speed : unit_speed;
 		int dx = x_speed > 0 ? current_tile_x_right + 1 : current_tile_x_left - 1;
-		double ix = x_speed > 0 ? -(spr.getGlobalBounds().left + spr.getGlobalBounds().width) : rh->tile_size - spr.getGlobalBounds().left;
+		float ix = x_speed > 0 ? -(spr.getGlobalBounds().left + spr.getGlobalBounds().width) : rh->tile_size - spr.getGlobalBounds().left;
 		for (int i = current_tile_y_top; i <= current_tile_y_bottom; i++)
 		{
 			if (!_game->is_empty_block(dx, i))
 			{
-				double dist_to_obstacle = _game->get_cord_of_tile(dx, i).x + ix;
+				float dist_to_obstacle = _game->get_cord_of_tile(dx, i).x + ix;
 				if (x_speed > 0 && x_speed > dist_to_obstacle) {
 					spr.move(dist_to_obstacle - 1, 0);
 					flip = !flip;

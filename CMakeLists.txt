@@ -35,9 +35,9 @@ include_directories(
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(_DEBUG)
     # 您可以在此處加入其他 debug 模式下的編譯選項
+    #add_compile_options(-O3)
 else()
     add_compile_definitions(NDEBUG)
-    # 您可以在此處加入 release 模式下的編譯選項 (如優化旗標)
 endif()
 
 add_compile_definitions(_CONSOLE)

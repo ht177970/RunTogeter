@@ -7,9 +7,9 @@ namespace rpf {
 	class ResourceHolder {
 	public:
 
-		const int s_width = 1600;
-		const int s_height = 960;
-		const int no_of_maps = 3;
+		int s_width = 1600;
+		int s_height = 960;
+		const int no_of_maps = 1;
 
 		float trans = 0.75;
 		int tile_size = trans * 64;

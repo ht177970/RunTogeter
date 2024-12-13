@@ -15,8 +15,8 @@ namespace rpf {
 		void delGraphic(sf::Drawable* d);
 		void clear();
 		sf::Vector2i getPosOnWindow(sf::Transformable* d);
-	private:
 		sf::RenderWindow* window;
+	//private:
 		std::vector<sf::Drawable*> graps;
 		sf::View* view;
 	};

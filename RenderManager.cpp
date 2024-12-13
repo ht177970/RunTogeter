@@ -36,6 +36,10 @@ namespace rpf {
 	}
 
 	void RenderManager::clear() {
+		//for (sf::Drawable* subgrap : graps) {
+		//	subgrap->~Drawable();
+		//	//free(subgrap);
+		//}
 		graps.clear();
 		this->view = nullptr;
 	}
