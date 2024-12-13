@@ -60,6 +60,7 @@ set(SOURCES
     Portal.cpp
     RenderManager.cpp
     ResourceHolder.cpp
+    MySocket.cpp
 )
 
 set(HEADERS
@@ -76,6 +77,7 @@ set(HEADERS
     RenderManager.hpp
     ResourceHolder.hpp
     Ingamebar.hpp
+    MySocket.hpp
 )
 
 # ------------------------------------------------------------
