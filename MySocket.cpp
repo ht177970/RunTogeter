@@ -1,167 +1,202 @@
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <sstream>
 #include <thread>
 #include <unordered_map>
 #include <mutex>
 #include <string>
 #include <iostream>
-#include <unistd.h>
-#include "unp.h"
+#include <cstring>
 
-struct MySocket {
-    std::stringstream sin, sout;
-    int sockfd;
-    std::unordered_map<int, std::string> clients; // Store client socket file descriptors and their ip address
-    std::mutex mtx; // Mutex to synchronize access to shared resources
+class MySocket {
+public:
+    std::stringstream sin;   // 收到的資料
+    std::stringstream sout;  // 要傳送的資料
 
-    MySocket() : sockfd(-1) {}
+    MySocket() : server_fd(-1) {}
 
+    ~MySocket() {
+        if (server_fd != -1) {
+            close(server_fd);
+        }
+        for (auto& [_, fd] : clients) {
+            close(fd);
+        }
+    }
+
+    // Host Function: 開啟伺服器
     void host(int port) {
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) {
+        server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (server_fd < 0) {
             perror("Socket creation failed");
             return;
         }
 
-        struct sockaddr_in servaddr {};
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_addr.s_addr = INADDR_ANY;
-        servaddr.sin_port = htons(port);
-
-        if (bind(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
+        sockaddr_in server_addr{};
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_addr.s_addr = INADDR_ANY;
+        server_addr.sin_port = htons(port);
+        // addr reuse
+        int opt = 1;
+        setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
             perror("Bind failed");
-            close(sockfd);
+            close(server_fd);
             return;
         }
 
-        if (listen(sockfd, 10) < 0) {
+        if (listen(server_fd, 5) < 0) {
             perror("Listen failed");
-            close(sockfd);
+            close(server_fd);
             return;
         }
 
         std::cout << "Server listening on port " << port << std::endl;
 
-        std::thread([this]() { acceptClients(); }).detach();
-        std::thread([this]() { handleOutgoing(); }).detach();
+        // Accept new clients
+        std::thread(&MySocket::acceptClients, this).detach();
+
+        // Broadcast loop
+        std::thread(&MySocket::broadcastLoop, this).detach();
     }
 
-    bool connect(const std::string& ip, int port) {//modified from void to boolean for returning connect state
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) {
+    // Connect Function: 作為客戶端連線到伺服器
+    bool connect(const std::string& ip, int port) {
+        int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock_fd < 0) {
             perror("Socket creation failed");
-            return 0;
+            return false;
         }
 
-        struct sockaddr_in servaddr {};
-        servaddr.sin_family = AF_INET;
-        servaddr.sin_port = htons(port);
-        if (inet_pton(AF_INET, ip.c_str(), &servaddr.sin_addr) <= 0) {
-            perror("Invalid address");
-            close(sockfd);
-            return 0;
+        sockaddr_in server_addr{};
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(port);
+
+        if (inet_pton(AF_INET, ip.c_str(), &server_addr.sin_addr) <= 0) {
+            perror("Invalid address/Address not supported");
+            close(sock_fd);
+            return false;
         }
 
-        if (::connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
+        if (::connect(sock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
             perror("Connection failed");
-            close(sockfd);
-            return 0;
+            close(sock_fd);
+            return false;
         }
 
-        std::cout << "Connected to server at " << ip << ":" << port << std::endl;
+        std::cout << "Connected to server " << ip << ":" << port << std::endl;
 
-        std::thread([this]() { handleIncoming(); }).detach();
-        std::thread([this]() { handleOutgoing(); }).detach();
-        return 1;
+        // 接收資料的執行緒
+        std::thread([this, sock_fd]() {
+            char buffer[1024];
+            while (true) {
+                memset(buffer, 0, sizeof(buffer));
+                int bytes_received = recv(sock_fd, buffer, sizeof(buffer), 0);
+                if (bytes_received <= 0) {
+                    std::cerr << "Server connection lost." << std::endl;
+                    close(sock_fd);
+                    break;
+                }
+                std::lock_guard<std::mutex> lock(sin_mutex);
+                sin << buffer;
+            }
+            }).detach();
+
+        // 傳送資料的執行緒
+        std::thread([this, sock_fd]() {
+            while (true) {
+                std::string data;
+                {
+                    std::lock_guard<std::mutex> lock(sout_mutex);
+                    data = sout.str();
+                    sout.str("");
+                    sout.clear();
+                }
+                if (!data.empty()) {
+                    send(sock_fd, data.c_str(), data.size(), 0);
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            }).detach();
+
+        return true;
     }
+    int server_fd;  // Server socket file descriptor
+    std::unordered_map<int, int> clients;  // 客戶端的連線
+    std::mutex clients_mutex;  // 保護 clients 資料結構
+    std::mutex sin_mutex;      // 保護 sin
+    std::mutex sout_mutex;     // 保護 sout
 
-private:
+    // 接受客戶端連線
     void acceptClients() {
         while (true) {
-            struct sockaddr_in cliaddr {};
-            socklen_t clilen = sizeof(cliaddr);
-            int connfd = accept(sockfd, (SA*)&cliaddr, &clilen);
-            if (connfd < 0) {
+            sockaddr_in client_addr;
+            socklen_t addr_len = sizeof(client_addr);
+            int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &addr_len);
+            if (client_fd < 0) {
                 perror("Accept failed");
                 continue;
             }
 
-            char clientIp[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &cliaddr.sin_addr, clientIp, INET_ADDRSTRLEN);
-            std::string clientAddress = std::string(clientIp) + ":" + std::to_string(ntohs(cliaddr.sin_port));
-
-            std::cout << "New client connected: " << clientAddress << std::endl;
-
             {
-                std::lock_guard<std::mutex> lock(mtx);
-                clients[connfd] = clientAddress;
+                std::lock_guard<std::mutex> lock(clients_mutex);
+                clients[client_fd] = client_fd;
             }
 
-            std::thread([this, connfd]() { handleClient(connfd); }).detach();
+            std::cout << "New client connected." << std::endl;
+
+            // 處理客戶端資料
+            std::thread(&MySocket::handleClient, this, client_fd).detach();
         }
     }
 
-    void handleClient(int connfd) {
+    // 處理客戶端資料
+    void handleClient(int client_fd) {
         char buffer[1024];
-        memset(buffer, 0, sizeof(buffer));
         while (true) {
-            int n = read(connfd, buffer, sizeof(buffer));
-            if (n <= 0) {
-                close(connfd);
+            memset(buffer, 0, sizeof(buffer));
+            int bytes_received = recv(client_fd, buffer, sizeof(buffer), 0);
+            if (bytes_received <= 0) {
+                std::cerr << "Client disconnected." << std::endl;
+                close(client_fd);
                 {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    clients.erase(connfd);
+                    std::lock_guard<std::mutex> lock(clients_mutex);
+                    clients.erase(client_fd);
                 }
-                std::cout << "Client disconnected" << std::endl;
                 break;
             }
-            buffer[n] = '\0';
+
+            // 廣播收到的訊息
             {
-                std::lock_guard<std::mutex> lock(mtx);
+                std::lock_guard<std::mutex> lock(sin_mutex);
                 sin << buffer;
-                for (const auto& client : clients) {
-                    if (client.first != connfd) {
-                        write(client.first, buffer, n);
-                    }
-                }
             }
         }
     }
 
-    void handleIncoming() {
-        char buffer[1024];
-        memset(buffer, 0, sizeof(buffer));
+    // 廣播伺服器收到的資料
+    void broadcastLoop() {
         while (true) {
-            int n = read(sockfd, buffer, sizeof(buffer));
-            if (n <= 0) {
-                std::cout << "Disconnected from server" << std::endl;
-                close(sockfd);
-                break;
+            std::string data;
+            {
+                std::lock_guard<std::mutex> lock(sout_mutex);
+                data = sout.str();
+                sout.str("");
+                sout.clear();
             }
 
-            buffer[n] = '\0';
-            sin << buffer;
-        }
-    }
-
-    void handleOutgoing() {
-        std::string line;
-        while (true) {
-            if (std::getline(sout, line)) {
-                line += '\n';
-
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    if (sockfd != -1) {
-                        write(sockfd, line.c_str(), line.size());
-                    }
-
-                    for (const auto& client : clients) {
-                        write(client.first, line.c_str(), line.size());
-                    }
+            if (!data.empty()) {
+                std::lock_guard<std::mutex> lock(clients_mutex);
+                for (const auto& [_, client_fd] : clients) {
+                    send(client_fd, data.c_str(), data.size(), 0);
                 }
-
-                sin << line;
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 };
