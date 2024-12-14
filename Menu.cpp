@@ -106,7 +106,6 @@ namespace rpf {
 	void Text::setTextSize(unsigned int size) {
 		this->grap.setCharacterSize(size);
 		this->grap.setOrigin(grap.getLocalBounds().width / 2, grap.getLocalBounds().height / 2);
-		std::cout << grap.getLocalBounds().width << " " << grap.getLocalBounds().height << "\n";
 		this->TextChanged();
 	}
 
@@ -116,11 +115,6 @@ namespace rpf {
 
 	int Text::getId() {
 		return m_id;
-	}
-
-	void Text::draw(sf::RenderWindow& window) {
-		updateText();
-		window.draw(grap);
 	}
 
 	void Text::updateText() {
@@ -138,6 +132,8 @@ namespace rpf {
 	}
 
 #pragma endregion
+
+#pragma region MainMenu
 
 	MainMenu::MainMenu(RenderManager* rm, ResourceHolder* rh) : ClickableMenu(rm, rh) {
 		this->rm = rm;
@@ -170,10 +166,14 @@ namespace rpf {
 
 	void MainMenu::EnterPressed(int index) {
 		if (index == 0)
-			Core::CORE->switchMode(Mode::IN_GAME);
+			Core::CORE->switchMode(Mode::CONNECTION_MENU);
 		else if (index == 1)
 			Core::CORE->switchMode(Mode::CLOSED);
 	}
+
+#pragma endregion
+
+#pragma region GameOverMenu
 
 	GameOverMenu::GameOverMenu(RenderManager* rm, ResourceHolder* rh) : ClickableMenu(rm, rh) {
 		this->rm = rm;
@@ -183,7 +183,7 @@ namespace rpf {
 
 	void GameOverMenu::EnterPressed(int index) {
 		if (index == 0)
-			Core::CORE->switchMode(Mode::IN_GAME);
+			Core::CORE->switchMode(Mode::MAIN_MENU);
 		else if (index == 1)
 			Core::CORE->switchMode(Mode::CLOSED);
 	}
@@ -195,7 +195,7 @@ namespace rpf {
 		rect->setPosition(rh->view->getCenter().x, 0);
 		rm->addGraphics(rect);
 
-		sf::String texts[] = { "START"/*, L"回到選單"*/, "LEAVE" };
+		sf::String texts[] = { "Back to Menu"/*, L"回到選單"*/, "Quit the game" };
 		Pos text_position(rh->view->getCenter().x, rh->view->getCenter().y- rh->s_height / 4);
 		unsigned int text_size;
 		text_size = static_cast<unsigned int>(30.f * text_position.x / 500);
@@ -210,4 +210,140 @@ namespace rpf {
 			rm->addGraphics(&t->grap);
 		m_text_index = 0;
 	}
+
+#pragma endregion
+
+	TextBox::TextBox(Pos position, sf::Font font, unsigned int size, RenderManager* rm) {
+		this->m_font = font;
+		this->rm = rm;
+
+		// 初始化框
+		box.setSize(sf::Vector2f(300.f, 50.f));
+		box.setFillColor(sf::Color::White);
+		box.setOutlineColor(sf::Color::Black);
+		box.setOutlineThickness(2.f);
+		box.setOrigin(box.getSize().x / 2, box.getSize().y / 2);  // 設置中心原點
+		box.setPosition(position.x, position.y);
+
+		// 初始化輸入文本
+		inputText = sf::Text(sf::String(), m_font, size);
+		inputText.setFillColor(sf::Color::Black);
+		inputText.setPosition(box.getPosition().x - box.getSize().x / 2 + 10, box.getPosition().y - inputText.getCharacterSize() / 2);
+
+		// 初始化占位符文本
+		placeholderText = sf::Text("", m_font, size);
+		placeholderText.setFillColor(sf::Color(150, 150, 150));
+		placeholderText.setPosition(inputText.getPosition());
+
+		isFocused = false;
+	}
+
+	void TextBox::handleEvent(sf::Event e) {
+		if (e.type == sf::Event::MouseButtonPressed) {
+			// 使用 mapPixelToCoords 轉換鼠標座標
+			sf::Vector2i pixelPos = sf::Mouse::getPosition(*rm->window);
+			sf::Vector2f worldPos = rm->window->mapPixelToCoords(pixelPos);
+			isFocused = box.getGlobalBounds().contains(worldPos);
+		}
+		else if (isFocused && e.type == sf::Event::TextEntered) {
+			if (e.text.unicode == '\b' && !inputText.getString().isEmpty()) {
+				// Backspace 處理
+				sf::String text = inputText.getString();
+				text.erase(text.getSize() - 1);
+				inputText.setString(text);
+			}
+			else if (e.text.unicode >= 32 && e.text.unicode < 128) {
+				// 限制 ASCII 輸入範圍
+				inputText.setString(inputText.getString() + e.text.unicode);
+			}
+		}
+
+		// 占位符顯示
+		if (inputText.getString().isEmpty()) {
+			placeholderText.setFillColor(sf::Color(150, 150, 150));
+		}
+		else {
+			placeholderText.setFillColor(sf::Color::Transparent);
+		}
+	}
+
+	void TextBox::setPlaceholder(const sf::String& text) {
+		placeholderText.setString(text);
+	}
+
+	sf::String TextBox::getInputText() const {
+		return inputText.getString();
+	}
+
+	// 提供接口以獲取內部圖形物件
+	sf::RectangleShape* TextBox::getBox() {
+		return &box;
+	}
+
+	sf::Text* TextBox::getInputTextGraphic() {
+		return &inputText;
+	}
+
+	sf::Text* TextBox::getPlaceholderTextGraphic() {
+		return &placeholderText;
+	}
+
+	
+	ConnectionMenu::ConnectionMenu(RenderManager* rm, ResourceHolder* rh) : ClickableMenu(rm, rh) {
+		this->rm = rm;
+		this->rh = rh;
+		this->initMenu();
+	}
+
+	void ConnectionMenu::initMenu() {
+		sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(rh->s_width, rh->s_height));
+		rect->setFillColor(sf::Color::Blue);
+		rect->setOrigin(rh->s_width / 2, 0);
+		rect->setPosition(rh->view->getCenter().x, 0);
+		rm->addGraphics(rect);
+
+		Pos position(rh->s_width / 2, rh->s_height / 4);
+		textBox = new TextBox(position.AddY(50), rh->font, 20U, rm);
+		textBox->setPlaceholder("Enter IP Address");
+
+		// 確保文本框正確對齊
+		textBox->getBox()->setOrigin(textBox->getBox()->getSize().x / 2, textBox->getBox()->getSize().y / 2);
+		textBox->getInputTextGraphic()->setPosition(position.x - 140, position.y - 15);  // 偏移值根據字體大小微調
+
+		// 將 TextBox 的圖形物件添加到 RenderManager
+		rm->addGraphics(textBox->getBox());
+		rm->addGraphics(textBox->getInputTextGraphic());
+		rm->addGraphics(textBox->getPlaceholderTextGraphic());
+
+		sf::String texts[] = { "Connect", "Back" };
+		for (int i = 0; i < 2; i++) {
+			Text* tmp = new Text(texts[i], position.AddY(100), rh->font);
+			tmp->setTextSize(30U);
+			tmp->setId(i);
+			tmp->setTextIndexPointer(&m_text_index);
+			m_clickable_texts.push_back(tmp);
+		}
+
+		for (Text* t : m_clickable_texts)
+			rm->addGraphics(&t->grap);
+		m_text_index = 0;
+	}
+
+
+	void ConnectionMenu::EnterPressed(int index) {
+		if (index == 0) {
+			sf::String ip = textBox->getInputText();
+			std::cout << "Connecting to IP: " << ip.toAnsiString() << std::endl;
+			// Add connection logic here
+		}
+		else if (index == 1) {
+			Core::CORE->switchMode(Mode::MAIN_MENU);
+		}
+	}
+
+	void ConnectionMenu::handleEvent(sf::Event e) {
+		textBox->handleEvent(e);
+		ClickableMenu::handleEvent(e);
+	}
+
 }

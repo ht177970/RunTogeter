@@ -53,9 +53,16 @@ namespace rpf {
 	void Core::switchMode(Mode mode) {
 		switch (mode) {
 		case Mode::MAIN_MENU:
+			rm.clear();
 			now = new MainMenu(&rm, &rh);
 			break;
+		case Mode::CONNECTION_MENU:
+			rm.clear();
+			now = new ConnectionMenu(&rm, &rh);
+			break;
 		case Mode::IN_GAME:
+			if (now)
+				free(now);
 			now = new Game(&rm, &rh);
 			break;
 		case Mode::GAME_OVER:

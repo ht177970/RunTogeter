@@ -6,11 +6,6 @@
 #include "ResourceHolder.hpp"
 
 namespace rpf {
-	class BaseDrawable {
-	public:
-		virtual ~BaseDrawable() = default;
-		virtual void draw(sf::RenderWindow& window) = 0;
-	};
 
 	struct Pos {
 		float x, y;
@@ -55,7 +50,7 @@ namespace rpf {
 		}
 	};
 
-	class Text : public BaseDrawable {
+	class Text {
 	public:
 		explicit Text(sf::String text, Pos position, sf::Font font);
 		~Text() = default;
@@ -65,7 +60,6 @@ namespace rpf {
 		void setTextColor(sf::Color color);
 		virtual void TextChanged() {};
 		int getId();
-		void draw(sf::RenderWindow& window) override;
 		virtual bool isPosIn(sf::Vector2i pos);
 	//protected:
 		RenderManager* rm;
@@ -111,5 +105,40 @@ namespace rpf {
 		~GameOverMenu() = default;
 		void initMenu();
 		void EnterPressed(int index);
+	};
+
+	class TextBox {
+	public:
+		TextBox(Pos position, sf::Font font, unsigned int size, RenderManager* rm);
+
+		void handleEvent(sf::Event e);
+		void setPlaceholder(const sf::String& text);
+		sf::String getInputText() const;
+
+		// 提供接口以獲取內部圖形物件
+		sf::RectangleShape* getBox();
+		sf::Text* getInputTextGraphic();
+		sf::Text* getPlaceholderTextGraphic();
+
+	private:
+		RenderManager* rm;
+		sf::RectangleShape box;
+		sf::Text inputText;
+		sf::Text placeholderText;
+		sf::Font m_font;
+		bool isFocused;
+	};
+
+
+	class ConnectionMenu : public ClickableMenu {
+	public:
+		explicit ConnectionMenu(RenderManager* rm, ResourceHolder* rh);
+		~ConnectionMenu() = default;
+		void initMenu();
+		void EnterPressed(int index) override;
+		void handleEvent(sf::Event e) override;
+
+	private:
+		TextBox* textBox;
 	};
 }

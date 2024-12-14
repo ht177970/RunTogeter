@@ -23,6 +23,9 @@ namespace rpf {
 	}
 
 	void RenderManager::addGraphics(sf::Drawable* d) {
+		if (!d) {
+			throw std::runtime_error("Attempted to add a null graphic to RenderManager");
+		}
 		graps.push_back(d);
 	}
 

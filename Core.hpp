@@ -8,7 +8,7 @@
 
 namespace rpf {
 	enum Mode {
-		MAIN_MENU, IN_GAME, GAME_OVER, CLOSED
+		MAIN_MENU, CONNECTION_MENU, IN_GAME, GAME_OVER, CLOSED
 	};
 
 	class Core {
