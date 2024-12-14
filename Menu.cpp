@@ -15,15 +15,15 @@ namespace rpf {
 
 	void ClickableMenu::handleEvent(sf::Event e) {
 		switch (e.type) {
-			case sf::Event::KeyPressed:
-				onKeyDown(e.key.code);
-				break;
-			case sf::Event::MouseMoved:
-				onMouseMove(e.mouseMove);
-				break;
-			case sf::Event::MouseButtonPressed:
-				onMouseClick();
-				break;
+		case sf::Event::KeyPressed:
+			onKeyDown(e.key.code);
+			break;
+		case sf::Event::MouseMoved:
+			onMouseMove(e.mouseMove);
+			break;
+		case sf::Event::MouseButtonPressed:
+			onMouseClick();
+			break;
 		}
 	}
 
@@ -133,7 +133,7 @@ namespace rpf {
 	bool Text::isPosIn(sf::Vector2i pos) {
 		sf::Vector2f grapPos = grap.getPosition();
 		sf::FloatRect grap_rect = grap.getLocalBounds();
-		pos.x -= grapPos.x + grap_rect.left - grap_rect.width / 2 ;
+		pos.x -= grapPos.x + grap_rect.left - grap_rect.width / 2;
 		pos.y -= grapPos.y + grap_rect.top - grap_rect.height / 2;
 		return 0 <= pos.x && pos.x <= grap_rect.width &&
 			0 <= pos.y && pos.y <= grap_rect.height;
@@ -283,9 +283,9 @@ namespace rpf {
 	}
 
 	void MainMenu::initMenu() {
-		static sf::VertexArray gradient;
-		createGradientBackground(gradient, sf::Color(50, 50, 150), sf::Color(0, 0, 50), sf::Vector2f(rh->s_width, rh->s_height));
-		rm->addGraphics(&gradient);
+		sf::VertexArray* gradient = new sf::VertexArray();
+		createGradientBackground(*gradient, sf::Color(30, 30, 120), sf::Color(10, 10, 40), sf::Vector2f(rh->s_width, rh->s_height));
+		rm->addGraphics(gradient);
 
 		createStarfield(100, sf::Vector2f(rh->s_width, rh->s_height), stars);
 		drawStarfield(rm, stars);
@@ -349,11 +349,11 @@ namespace rpf {
 		rm->addGraphics(rect);
 
 		sf::String texts[] = { "Back to Menu"/*, L"回到選單"*/, "Quit the game" };
-		Pos text_position(rh->view->getCenter().x, rh->view->getCenter().y- rh->s_height / 4);
+		Pos text_position(rh->view->getCenter().x, rh->view->getCenter().y - rh->s_height / 4);
 		unsigned int text_size;
 		text_size = static_cast<unsigned int>(30.f * text_position.x / 500);
 		for (int i = 0; i < 2; i++) {
-			Text* tmp = new Text(texts[i], text_position.AddY(text_size*2), rh->font);
+			Text* tmp = new Text(texts[i], text_position.AddY(text_size * 2), rh->font);
 			tmp->setTextSize(30U);
 			tmp->setId(i);
 			tmp->setTextIndexPointer(&m_text_index);
@@ -375,18 +375,22 @@ namespace rpf {
 	}
 
 	void ConnectionMenu::initMenu() {
-		static sf::VertexArray gradient;
-		createGradientBackground(gradient, sf::Color(50, 50, 150), sf::Color(0, 0, 50), sf::Vector2f(rh->s_width, rh->s_height));
-		rm->addGraphics(&gradient);
+		sf::VertexArray* gradient = new sf::VertexArray();
+		createGradientBackground(*gradient, sf::Color(30, 30, 120), sf::Color(10, 10, 40), sf::Vector2f(rh->s_width, rh->s_height));
+		rm->addGraphics(gradient);
 
 		createStarfield(100, sf::Vector2f(rh->s_width, rh->s_height), stars);
 		drawStarfield(rm, stars);
-		
+
 		sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(rh->s_width, rh->s_height));
 		rect->setFillColor(sf::Color::Blue);
 		rect->setOrigin(rh->s_width / 2, 0);
 		rect->setPosition(rh->view->getCenter().x, 0);
 		rm->addGraphics(rect);
+
+		errorText = sf::Text("", rh->font, 20U);
+		errorText.setFillColor(sf::Color::Transparent);//初始為透明
+		rm->addGraphics(&errorText);
 
 		Pos position(rh->s_width / 2, rh->s_height / 4);
 		textBox = new TextBox(position.AddY(50), rh->font, 20U, rm);
@@ -401,8 +405,8 @@ namespace rpf {
 		rm->addGraphics(textBox->getInputTextGraphic());
 		rm->addGraphics(textBox->getPlaceholderTextGraphic());
 
-		sf::String texts[] = { "Connect", "Back" };
-		for (int i = 0; i < 2; i++) {
+		sf::String texts[] = { "Connect", "Back", "Create Game" };
+		for (int i = 0; i < 3; i++) {
 			Text* tmp = new Text(texts[i], position.AddY(100), rh->font);
 			tmp->setTextSize(30U);
 			tmp->setId(i);
@@ -425,10 +429,35 @@ namespace rpf {
 		if (index == 0) {
 			sf::String ip = textBox->getInputText();
 			std::cout << "Connecting to IP: " << ip.toAnsiString() << std::endl;
-			// Add connection logic here
+
+			// 模擬連線邏輯
+			bool connectionSuccess = ip == sf::String("0"); // 假設模擬函數
+			if (connectionSuccess) {
+				std::vector<int> players = { 1, 2, 3, 4 }; // 模擬玩家清單
+				int selfId = 2; // 假設自己的編號
+				Core::CORE->switchMode(new RoomMenu(rm, rh, players, selfId));
+			}
+			else {
+				errorText.setString("Connection failed!"); // 顯示錯誤
+				errorText.setFillColor(sf::Color::Red);
+				errorText.setPosition(textBox->getBox()->getPosition().x, textBox->getBox()->getPosition().y + 80);
+				errorText.setPosition(
+					textBox->getBox()->getPosition().x,
+					textBox->getBox()->getPosition().y + textBox->getBox()->getSize().y / 2 + 10
+				);
+				errorText.setOrigin(errorText.getLocalBounds().left + errorText.getLocalBounds().width / 2,
+					errorText.getLocalBounds().top + errorText.getLocalBounds().height / 2);
+				//rm->addGraphics(&errorText);
+			}
 		}
 		else if (index == 1) {
 			Core::CORE->switchMode(Mode::MAIN_MENU);
+		}
+		else if (index == 2) {
+			// Create Game action
+			std::cout << "Creating a new game..." << std::endl;
+			// Add game creation logic here
+			// This might involve showing a new input dialog or switching to a different mode
 		}
 	}
 
@@ -438,5 +467,64 @@ namespace rpf {
 	}
 
 #pragma endregion
+
+	RoomMenu::RoomMenu(RenderManager* rm, ResourceHolder* rh, std::vector<int> players, int selfId)
+		: ClickableMenu(rm, rh), players(players), selfId(selfId) {
+		rm->clear();
+		this->m_font = rh->font;
+		this->initMenu();
+	}
+
+	void RoomMenu::initMenu() {
+		sf::VertexArray* gradient = new sf::VertexArray();
+		createGradientBackground(*gradient, sf::Color(30, 30, 120), sf::Color(10, 10, 40), sf::Vector2f(rh->s_width, rh->s_height));
+		rm->addGraphics(gradient);
+
+		createStarfield(100, sf::Vector2f(rh->s_width, rh->s_height), stars);
+		drawStarfield(rm, stars);
+
+		renderPlayers();
+
+		sf::String texts[] = { "Leave Room" };
+		Pos position(rh->s_width / 2, rh->s_height - 100); // 放在底部
+		for (int i = 0; i < 1; i++) {
+			Text* tmp = new Text(texts[i], position, rh->font);
+			tmp->setTextSize(30U);
+			tmp->setId(i);
+			tmp->setTextIndexPointer(&m_text_index);
+			m_clickable_texts.push_back(tmp);
+		}
+		for (Text* t : m_clickable_texts)
+			rm->addGraphics(&t->grap);
+		m_text_index = 0;
+	}
+
+	void RoomMenu::renderPlayers() {
+		Pos position(rh->s_width / 2, 100); // 起始位置
+		unsigned int textSize = 25U;
+		for (int playerId : players) {
+			sf::Text* playerText = new sf::Text();
+			playerText->setFont(m_font);
+			playerText->setString(playerId == selfId ? "Player " + std::to_string(playerId) + " (You)" : "Player " + std::to_string(playerId));
+			playerText->setCharacterSize(textSize);
+			playerText->setFillColor(playerId == selfId ? sf::Color::Green : sf::Color::White);
+			playerText->setOrigin(playerText->getLocalBounds().width / 2, playerText->getLocalBounds().height / 2);
+			playerText->setPosition(position.x, position.y);
+			position.y += 40; // 每個玩家往下排
+			playerTexts.push_back(playerText);
+			rm->addGraphics(playerText);
+		}
+	}
+
+	void RoomMenu::EnterPressed(int index) {
+		if (index == 0) { // Leave Room
+			Core::CORE->switchMode(Mode::MAIN_MENU);
+		}
+	}
+
+	void RoomMenu::update() {
+		updateStarfield(stars, sf::Vector2f(rh->s_width, rh->s_height));
+		ClickableMenu::update();
+	}
 
 }

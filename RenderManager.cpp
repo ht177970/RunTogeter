@@ -13,8 +13,10 @@ namespace rpf {
 	void RenderManager::Render() {
 		window->clear();
 		window->setView(view ? *view : window->getDefaultView());
-		for (auto i : graps)
-			window->draw(*i);
+		for (auto i : graps) {
+			if (i)//for debug
+				window->draw(*i);
+		}
 		window->display();
 	}
 

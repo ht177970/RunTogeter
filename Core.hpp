@@ -19,6 +19,7 @@ namespace rpf {
 		~Core() = default;
 		void Run();
 		void switchMode(Mode mode);
+		void switchMode(Render* obj);
 	private:
 		sf::RenderWindow window;
 		RenderManager rm;

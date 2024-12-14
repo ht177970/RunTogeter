@@ -61,7 +61,7 @@ namespace rpf {
 		virtual void TextChanged() {};
 		int getId();
 		virtual bool isPosIn(sf::Vector2i pos);
-	//protected:
+		//protected:
 		RenderManager* rm;
 		ResourceHolder* rh;
 		sf::Text grap;
@@ -128,9 +128,6 @@ namespace rpf {
 		sf::Text placeholderText;
 		sf::Font m_font;
 		bool isFocused;
-		bool isBackspaceHeld = false;    // 標記是否持續按住 Backspace
-		sf::Clock backspaceClock;       // 控制連續刪除的計時器
-		float backspaceDelay = 0.1f;    // 控制刪除間隔（秒）
 		void updateVisuals();
 	};
 
@@ -145,5 +142,22 @@ namespace rpf {
 		void update() override;
 	private:
 		TextBox* textBox;
+		sf::Text errorText;
+	};
+
+	class RoomMenu : public ClickableMenu {
+	public:
+		RoomMenu(RenderManager* rm, ResourceHolder* rh, std::vector<int> players, int selfId);
+
+		void initMenu();
+		void EnterPressed(int index) override;
+		void update() override;
+	private:
+		std::vector<int> players; // 所有玩家編號
+		int selfId; // 自己的編號
+		std::vector<sf::Text*> playerTexts; // 用於顯示玩家的文字物件
+		sf::Font m_font;
+
+		void renderPlayers();
 	};
 }

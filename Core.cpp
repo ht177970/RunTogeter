@@ -74,5 +74,13 @@ namespace rpf {
 		}
 	}
 
+	void Core::switchMode(Render* obj) {
+		if (!obj)
+			throw std::runtime_error("fatal error: obj shouldn't be NULL!");
+		if (now)
+			free(now);
+		now = obj;
+	}
+
 	
 }
