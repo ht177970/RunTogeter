@@ -8,7 +8,7 @@ namespace rpf {
 	class RenderManager {
 	public:
 		RenderManager(sf::RenderWindow* window);
-		~RenderManager();
+		~RenderManager() = default;
 		void Render();
 		void setView(sf::View* v);
 		void addGraphics(sf::Drawable* d);

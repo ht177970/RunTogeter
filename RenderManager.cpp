@@ -6,10 +6,6 @@ namespace rpf {
 		this->view = nullptr;
 	}
 
-	RenderManager::~RenderManager() {
-
-	}
-
 	void RenderManager::Render() {
 		window->clear();
 		window->setView(view ? *view : window->getDefaultView());

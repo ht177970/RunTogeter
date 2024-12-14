@@ -45,11 +45,11 @@ struct MySocket {
         std::thread([this]() { handleOutgoing(); }).detach();
     }
 
-    void connect(const std::string& ip, int port) {
+    bool connect(const std::string& ip, int port) {//modified from void to boolean for returning connect state
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
             perror("Socket creation failed");
-            return;
+            return 0;
         }
 
         struct sockaddr_in servaddr {};
@@ -58,19 +58,20 @@ struct MySocket {
         if (inet_pton(AF_INET, ip.c_str(), &servaddr.sin_addr) <= 0) {
             perror("Invalid address");
             close(sockfd);
-            return;
+            return 0;
         }
 
         if (::connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
             perror("Connection failed");
             close(sockfd);
-            return;
+            return 0;
         }
 
         std::cout << "Connected to server at " << ip << ":" << port << std::endl;
 
         std::thread([this]() { handleIncoming(); }).detach();
         std::thread([this]() { handleOutgoing(); }).detach();
+        return 1;
     }
 
 private:
@@ -101,6 +102,7 @@ private:
 
     void handleClient(int connfd) {
         char buffer[1024];
+        memset(buffer, 0, sizeof(buffer));
         while (true) {
             int n = read(connfd, buffer, sizeof(buffer));
             if (n <= 0) {
@@ -127,6 +129,7 @@ private:
 
     void handleIncoming() {
         char buffer[1024];
+        memset(buffer, 0, sizeof(buffer));
         while (true) {
             int n = read(sockfd, buffer, sizeof(buffer));
             if (n <= 0) {

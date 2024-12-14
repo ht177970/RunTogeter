@@ -1,5 +1,6 @@
 #include "Menu.hpp"
 #include "Core.hpp"
+#include "MySocket.cpp"
 
 #include <iostream>
 
@@ -424,17 +425,59 @@ namespace rpf {
 		ClickableMenu::update();
 	}
 
+	void handleMsgServer() {//For test, not code here
+		int nowid = 1;
+		MySocket* sock = Core::CORE->sock;
+		std::stringstream& in = sock->sin;
+		std::string msg;
+		while (in >> msg) {
+			if (msg == "ask") {
+
+			}
+		}
+	}
+
+	void handleMsgClient() {//For test, not code here
+		int nowid = 1;
+		MySocket* sock = Core::CORE->sock;
+		std::stringstream& in = sock->sin;
+		std::stringstream& out = sock->sout;
+		std::string msg;
+		while (in >> msg) {
+			if (msg == "ask") {
+				nowid++;
+				out << "players";
+				out << nowid;
+				for (int i = 1; i <= nowid; i++)
+					out << i;
+				out << nowid;
+				out.flush();
+			}
+		}
+	}
 
 	void ConnectionMenu::EnterPressed(int index) {
 		if (index == 0) {
 			sf::String ip = textBox->getInputText();
 			std::cout << "Connecting to IP: " << ip.toAnsiString() << std::endl;
 
-			// 模擬連線邏輯
-			bool connectionSuccess = ip == sf::String("0"); // 假設模擬函數
+			Core::CORE->sock = new MySocket();
+			MySocket* sock = Core::CORE->sock;
+			bool connectionSuccess = sock->connect(ip, 55072);
 			if (connectionSuccess) {
-				std::vector<int> players = { 1, 2, 3, 4 }; // 模擬玩家清單
-				int selfId = 2; // 假設自己的編號
+				//std::vector<int> players = { 1, 2, 3, 4 }; // 模擬玩家清單
+				//int selfId = 2; // 假設自己的編號
+				sock->sout << "ask";
+				sock->sout.flush();
+				std::string tmp;
+				sock->sin >> tmp;
+				int N = 10;
+				sock->sin >> N;
+				std::vector<int> players(N);
+				for (auto& i : players)
+					sock->sin >> i;
+				int selfId = 3;
+				sock->sin >> selfId;
 				Core::CORE->switchMode(new RoomMenu(rm, rh, players, selfId));
 			}
 			else {
@@ -454,10 +497,17 @@ namespace rpf {
 			Core::CORE->switchMode(Mode::MAIN_MENU);
 		}
 		else if (index == 2) {
-			// Create Game action
 			std::cout << "Creating a new game..." << std::endl;
-			// Add game creation logic here
-			// This might involve showing a new input dialog or switching to a different mode
+
+			Core::CORE->sock = new MySocket();
+			MySocket* sock = Core::CORE->sock;
+			sock->host(55072);
+
+			std::vector<int> players = { 1 };
+			int selfId = 1;
+			Core::CORE->switchMode(new RoomMenu(rm, rh, players, selfId));
+
+			std::thread([this]() { handleMsgServer(); }).detach();
 		}
 	}
 
@@ -485,10 +535,10 @@ namespace rpf {
 
 		renderPlayers();
 
-		sf::String texts[] = { "Leave Room" };
-		Pos position(rh->s_width / 2, rh->s_height - 100); // 放在底部
-		for (int i = 0; i < 1; i++) {
-			Text* tmp = new Text(texts[i], position, rh->font);
+		sf::String texts[] = { "Leave Room", "Test del", "Test add"};
+		Pos position(rh->s_width / 2, rh->s_height - 300); // 放在底部 //-100
+		for (int i = 0; i < 3; i++) {
+			Text* tmp = new Text(texts[i], position.AddY(40), rh->font);
 			tmp->setTextSize(30U);
 			tmp->setId(i);
 			tmp->setTextIndexPointer(&m_text_index);
@@ -500,7 +550,7 @@ namespace rpf {
 	}
 
 	void RoomMenu::renderPlayers() {
-		Pos position(rh->s_width / 2, 100); // 起始位置
+		Pos position(rh->s_width / 2, 240); // 起始位置
 		unsigned int textSize = 25U;
 		for (int playerId : players) {
 			sf::Text* playerText = new sf::Text();
@@ -511,7 +561,7 @@ namespace rpf {
 			playerText->setOrigin(playerText->getLocalBounds().width / 2, playerText->getLocalBounds().height / 2);
 			playerText->setPosition(position.x, position.y);
 			position.y += 40; // 每個玩家往下排
-			playerTexts.push_back(playerText);
+			playerTexts.push_back({ playerId, playerText });
 			rm->addGraphics(playerText);
 		}
 	}
@@ -520,10 +570,58 @@ namespace rpf {
 		if (index == 0) { // Leave Room
 			Core::CORE->switchMode(Mode::MAIN_MENU);
 		}
+		else if (index == 1) {
+			leaved.push_back(2);
+		}
+		if (index == 2) {
+			joined.push_back(5);
+		}
 	}
 
 	void RoomMenu::update() {
 		updateStarfield(stars, sf::Vector2f(rh->s_width, rh->s_height));
+		bool repos = 0;
+		if (!leaved.empty()) {
+			for (int id : leaved) {
+				for (auto it = playerTexts.begin(); it != playerTexts.end();) {
+					if (it->first == id) {
+						rm->delGraphic(it->second);
+						free(it->second);
+						it = playerTexts.erase(it);
+					}
+					else
+						it++;
+				}
+			}
+			leaved.clear();
+			repos = 1;
+		}
+		if (!joined.empty()) {
+			Pos position(rh->s_width / 2, 240); // 起始位置
+			unsigned int textSize = 25U;
+			for (int playerId : joined) {
+				sf::Text* playerText = new sf::Text();
+				playerText->setFont(m_font);
+				playerText->setString(playerId == selfId ? "Player " + std::to_string(playerId) + " (You)" : "Player " + std::to_string(playerId));
+				playerText->setCharacterSize(textSize);
+				playerText->setFillColor(playerId == selfId ? sf::Color::Green : sf::Color::White);
+				playerText->setOrigin(playerText->getLocalBounds().width / 2, playerText->getLocalBounds().height / 2);
+				playerText->setPosition(position.x, position.y);
+				position.y += 40; // 每個玩家往下排
+				playerTexts.push_back({ playerId, playerText });
+				rm->addGraphics(playerText);
+			}
+			joined.clear();
+			repos = 1;
+		}
+		if (repos) {
+			Pos position(rh->s_width / 2, 240); // 起始位置
+			for (std::pair<int, sf::Text*> element : playerTexts) {
+				sf::Text* playerText = element.second;
+				playerText->setPosition(position.x, position.y);
+				position.y += 40;
+			}
+		}
 		ClickableMenu::update();
 	}
 

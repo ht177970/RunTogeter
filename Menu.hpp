@@ -152,10 +152,11 @@ namespace rpf {
 		void initMenu();
 		void EnterPressed(int index) override;
 		void update() override;
+		std::vector<int> joined, leaved; // 用於顯示玩家的文字物件
 	private:
 		std::vector<int> players; // 所有玩家編號
 		int selfId; // 自己的編號
-		std::vector<sf::Text*> playerTexts; // 用於顯示玩家的文字物件
+		std::vector<std::pair<int, sf::Text*>> playerTexts; // 用於顯示玩家的文字物件
 		sf::Font m_font;
 
 		void renderPlayers();

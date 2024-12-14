@@ -5,6 +5,7 @@
 #include "Game.hpp"
 #include "RenderManager.hpp"
 #include "Menu.hpp"
+#include "MySocket.hpp"
 
 namespace rpf {
 	enum Mode {
@@ -20,6 +21,7 @@ namespace rpf {
 		void Run();
 		void switchMode(Mode mode);
 		void switchMode(Render* obj);
+		MySocket* sock;
 	private:
 		sf::RenderWindow window;
 		RenderManager rm;
