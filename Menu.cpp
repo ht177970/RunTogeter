@@ -84,7 +84,7 @@ namespace rpf {
 #pragma endregion
 
 
-#pragma region Text
+#pragma region Text/Textbox
 
 	Text::Text(sf::String text, Pos position, sf::Font font) {
 		this->m_id = -1;//default
@@ -118,8 +118,16 @@ namespace rpf {
 	}
 
 	void Text::updateText() {
-		if (this->index)
-			this->setTextColor((*this->index == m_id) ? sf::Color::Yellow : sf::Color::White);
+		if (this->index) {
+			if (*this->index == m_id) {
+				this->setTextColor(sf::Color::Yellow);
+				this->grap.setScale(1.1f, 1.1f); // 聚焦時放大
+			}
+			else {
+				this->setTextColor(sf::Color::White);
+				this->grap.setScale(1.0f, 1.0f); // 恢復原大小
+			}
+		}
 	}
 
 	bool Text::isPosIn(sf::Vector2i pos) {
@@ -131,7 +139,140 @@ namespace rpf {
 			0 <= pos.y && pos.y <= grap_rect.height;
 	}
 
+	TextBox::TextBox(Pos position, sf::Font font, unsigned int size, RenderManager* rm) {
+		this->m_font = font;
+		this->rm = rm;
+
+		// 初始化框
+		box.setSize(sf::Vector2f(300.f, 50.f));
+		box.setFillColor(sf::Color::White);
+		box.setOutlineColor(sf::Color::Black);
+		box.setOutlineThickness(2.f);
+		box.setOrigin(box.getSize().x / 2, box.getSize().y / 2);  // 設置中心原點
+		box.setPosition(position.x, position.y);
+
+		// 初始化輸入文本
+		inputText = sf::Text(sf::String(), m_font, size);
+		inputText.setFillColor(sf::Color::Black);
+		inputText.setPosition(box.getPosition().x - box.getSize().x / 2 + 10, box.getPosition().y - inputText.getCharacterSize() / 2);
+
+		// 初始化占位符文本
+		placeholderText = sf::Text("", m_font, size);
+		placeholderText.setFillColor(sf::Color(150, 150, 150));
+		placeholderText.setPosition(inputText.getPosition());
+
+		isFocused = false;
+	}
+
+	void TextBox::updateVisuals() {
+		if (isFocused) {
+			box.setOutlineColor(sf::Color::Blue);  // 聚焦時外框顏色變藍
+			box.setOutlineThickness(3.f);         // 增加框線厚度
+		}
+		else {
+			box.setOutlineColor(sf::Color::Black); // 失焦時恢復黑色
+			box.setOutlineThickness(2.f);         // 恢復框線厚度
+		}
+	}
+
+	void TextBox::handleEvent(sf::Event e) {
+		if (e.type == sf::Event::MouseButtonPressed) {
+			sf::Vector2i pixelPos = sf::Mouse::getPosition(*rm->window);
+			sf::Vector2f worldPos = rm->window->mapPixelToCoords(pixelPos);
+			isFocused = box.getGlobalBounds().contains(worldPos);
+			updateVisuals();
+		}
+		else if (isFocused && e.type == sf::Event::TextEntered) {
+			if (e.text.unicode == '\b' && !inputText.getString().isEmpty()) {
+				// Backspace 處理
+				sf::String text = inputText.getString();
+				text.erase(text.getSize() - 1);
+				inputText.setString(text);
+			}
+			else if (e.text.unicode >= 32 && e.text.unicode < 128) {
+				// 限制 ASCII 輸入範圍
+				inputText.setString(inputText.getString() + e.text.unicode);
+			}
+		}
+
+		// 占位符顯示
+		if (inputText.getString().isEmpty()) {
+			placeholderText.setFillColor(sf::Color(150, 150, 150));
+		}
+		else {
+			placeholderText.setFillColor(sf::Color::Transparent);
+		}
+	}
+
+	void TextBox::setPlaceholder(const sf::String& text) {
+		placeholderText.setString(text);
+	}
+
+	sf::String TextBox::getInputText() const {
+		return inputText.getString();
+	}
+
+	sf::RectangleShape* TextBox::getBox() {
+		return &box;
+	}
+
+	sf::Text* TextBox::getInputTextGraphic() {
+		return &inputText;
+	}
+
+	sf::Text* TextBox::getPlaceholderTextGraphic() {
+		return &placeholderText;
+	}
+
 #pragma endregion
+
+#pragma region effects
+
+	void createGradientBackground(sf::VertexArray& background, sf::Color topColor, sf::Color bottomColor, sf::Vector2f size) {
+		background.setPrimitiveType(sf::Quads);
+		background.resize(4);
+
+		background[0].position = sf::Vector2f(0, 0);
+		background[1].position = sf::Vector2f(size.x, 0);
+		background[2].position = sf::Vector2f(size.x, size.y);
+		background[3].position = sf::Vector2f(0, size.y);
+
+		background[0].color = topColor;
+		background[1].color = topColor;
+		background[2].color = bottomColor;
+		background[3].color = bottomColor;
+	}
+
+
+	std::vector<sf::CircleShape> stars;
+
+	void createStarfield(int numStars, sf::Vector2f size, std::vector<sf::CircleShape>& stars) {
+		stars.clear();
+		for (int i = 0; i < numStars; ++i) {
+			sf::CircleShape star(1.f);
+			star.setFillColor(sf::Color::White);
+			star.setPosition(rand() % static_cast<int>(size.x), rand() % static_cast<int>(size.y));
+			stars.push_back(star);
+		}
+	}
+
+	void updateStarfield(std::vector<sf::CircleShape>& stars, sf::Vector2f size) {
+		for (auto& star : stars) {
+			star.move(0.f, 0.5f); // 星星向下移動
+			if (star.getPosition().y > size.y) {
+				star.setPosition(rand() % static_cast<int>(size.x), 0); // 重置到頂部
+			}
+		}
+	}
+
+	void drawStarfield(RenderManager* rm, std::vector<sf::CircleShape>& stars) {
+		for (auto& star : stars) {
+			rm->addGraphics(&star);
+		}
+	}
+
+#pragma endregion
+
 
 #pragma region MainMenu
 
@@ -142,6 +283,13 @@ namespace rpf {
 	}
 
 	void MainMenu::initMenu() {
+		static sf::VertexArray gradient;
+		createGradientBackground(gradient, sf::Color(50, 50, 150), sf::Color(0, 0, 50), sf::Vector2f(rh->s_width, rh->s_height));
+		rm->addGraphics(&gradient);
+
+		createStarfield(100, sf::Vector2f(rh->s_width, rh->s_height), stars);
+		drawStarfield(rm, stars);
+
 		sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(rh->s_width, rh->s_height));
 		rect->setFillColor(sf::Color::Cyan);
 		rect->setOrigin(rh->s_width / 2, 0);
@@ -162,6 +310,11 @@ namespace rpf {
 		for (Text* t : m_clickable_texts)
 			rm->addGraphics(&t->grap);
 		m_text_index = 0;
+	}
+
+	void MainMenu::update() {
+		updateStarfield(stars, sf::Vector2f(rh->s_width, rh->s_height));
+		ClickableMenu::update();
 	}
 
 	void MainMenu::EnterPressed(int index) {
@@ -213,82 +366,8 @@ namespace rpf {
 
 #pragma endregion
 
-	TextBox::TextBox(Pos position, sf::Font font, unsigned int size, RenderManager* rm) {
-		this->m_font = font;
-		this->rm = rm;
+#pragma region ConnectionMenu
 
-		// 初始化框
-		box.setSize(sf::Vector2f(300.f, 50.f));
-		box.setFillColor(sf::Color::White);
-		box.setOutlineColor(sf::Color::Black);
-		box.setOutlineThickness(2.f);
-		box.setOrigin(box.getSize().x / 2, box.getSize().y / 2);  // 設置中心原點
-		box.setPosition(position.x, position.y);
-
-		// 初始化輸入文本
-		inputText = sf::Text(sf::String(), m_font, size);
-		inputText.setFillColor(sf::Color::Black);
-		inputText.setPosition(box.getPosition().x - box.getSize().x / 2 + 10, box.getPosition().y - inputText.getCharacterSize() / 2);
-
-		// 初始化占位符文本
-		placeholderText = sf::Text("", m_font, size);
-		placeholderText.setFillColor(sf::Color(150, 150, 150));
-		placeholderText.setPosition(inputText.getPosition());
-
-		isFocused = false;
-	}
-
-	void TextBox::handleEvent(sf::Event e) {
-		if (e.type == sf::Event::MouseButtonPressed) {
-			// 使用 mapPixelToCoords 轉換鼠標座標
-			sf::Vector2i pixelPos = sf::Mouse::getPosition(*rm->window);
-			sf::Vector2f worldPos = rm->window->mapPixelToCoords(pixelPos);
-			isFocused = box.getGlobalBounds().contains(worldPos);
-		}
-		else if (isFocused && e.type == sf::Event::TextEntered) {
-			if (e.text.unicode == '\b' && !inputText.getString().isEmpty()) {
-				// Backspace 處理
-				sf::String text = inputText.getString();
-				text.erase(text.getSize() - 1);
-				inputText.setString(text);
-			}
-			else if (e.text.unicode >= 32 && e.text.unicode < 128) {
-				// 限制 ASCII 輸入範圍
-				inputText.setString(inputText.getString() + e.text.unicode);
-			}
-		}
-
-		// 占位符顯示
-		if (inputText.getString().isEmpty()) {
-			placeholderText.setFillColor(sf::Color(150, 150, 150));
-		}
-		else {
-			placeholderText.setFillColor(sf::Color::Transparent);
-		}
-	}
-
-	void TextBox::setPlaceholder(const sf::String& text) {
-		placeholderText.setString(text);
-	}
-
-	sf::String TextBox::getInputText() const {
-		return inputText.getString();
-	}
-
-	// 提供接口以獲取內部圖形物件
-	sf::RectangleShape* TextBox::getBox() {
-		return &box;
-	}
-
-	sf::Text* TextBox::getInputTextGraphic() {
-		return &inputText;
-	}
-
-	sf::Text* TextBox::getPlaceholderTextGraphic() {
-		return &placeholderText;
-	}
-
-	
 	ConnectionMenu::ConnectionMenu(RenderManager* rm, ResourceHolder* rh) : ClickableMenu(rm, rh) {
 		this->rm = rm;
 		this->rh = rh;
@@ -296,6 +375,13 @@ namespace rpf {
 	}
 
 	void ConnectionMenu::initMenu() {
+		static sf::VertexArray gradient;
+		createGradientBackground(gradient, sf::Color(50, 50, 150), sf::Color(0, 0, 50), sf::Vector2f(rh->s_width, rh->s_height));
+		rm->addGraphics(&gradient);
+
+		createStarfield(100, sf::Vector2f(rh->s_width, rh->s_height), stars);
+		drawStarfield(rm, stars);
+		
 		sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(rh->s_width, rh->s_height));
 		rect->setFillColor(sf::Color::Blue);
 		rect->setOrigin(rh->s_width / 2, 0);
@@ -329,6 +415,11 @@ namespace rpf {
 		m_text_index = 0;
 	}
 
+	void ConnectionMenu::update() {
+		updateStarfield(stars, sf::Vector2f(rh->s_width, rh->s_height));
+		ClickableMenu::update();
+	}
+
 
 	void ConnectionMenu::EnterPressed(int index) {
 		if (index == 0) {
@@ -345,5 +436,7 @@ namespace rpf {
 		textBox->handleEvent(e);
 		ClickableMenu::handleEvent(e);
 	}
+
+#pragma endregion
 
 }

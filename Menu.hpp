@@ -97,6 +97,7 @@ namespace rpf {
 		~MainMenu() = default;
 		void initMenu();
 		void EnterPressed(int index);
+		void update() override;
 	};
 
 	class GameOverMenu : public ClickableMenu {
@@ -127,6 +128,10 @@ namespace rpf {
 		sf::Text placeholderText;
 		sf::Font m_font;
 		bool isFocused;
+		bool isBackspaceHeld = false;    // 標記是否持續按住 Backspace
+		sf::Clock backspaceClock;       // 控制連續刪除的計時器
+		float backspaceDelay = 0.1f;    // 控制刪除間隔（秒）
+		void updateVisuals();
 	};
 
 
@@ -137,7 +142,7 @@ namespace rpf {
 		void initMenu();
 		void EnterPressed(int index) override;
 		void handleEvent(sf::Event e) override;
-
+		void update() override;
 	private:
 		TextBox* textBox;
 	};
