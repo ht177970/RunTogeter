@@ -26,6 +26,7 @@ namespace rpf {
 		sf::Vector2f get_cord_of_tile(int x, int y);
 		Map getMap() { return map; }
 	private:
+		int idnum = 1;
 		Player p;
 		RenderManager* rm;
 		ResourceHolder* rh;

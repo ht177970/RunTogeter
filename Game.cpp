@@ -29,7 +29,7 @@ namespace rpf {
 					break;
 				case 4291366655://coin
 				{
-					Coin* coin = new Coin(rh, j, i);
+					Coin* coin = new Coin(rh, j, i, idnum++);
 					coins.push_back(coin);
 					rm->addGraphics(&coin->getDrawable());
 					break;
@@ -51,7 +51,7 @@ namespace rpf {
 				case 3978044671:
 				case 2281707007:
 				{
-					Enemy* emy = new Enemy(rh, this, j, i);
+					Enemy* emy = new Enemy(rh, this, j, i, idnum++);
 					if (c == -2013260289)
 						emy->AI = true;
 					enemies.push_back(emy);
@@ -142,7 +142,7 @@ namespace rpf {
 		rm->addGraphics(&bar.highest_score);
 	}
 
-	Game::Game(RenderManager* _rm, ResourceHolder* _rh) : p(_rh, &back_map, this), bar(_rh) {
+	Game::Game(RenderManager* _rm, ResourceHolder* _rh) : p(_rh, &back_map, this, idnum++), bar(_rh) {
 		this->rm = _rm;
 		this->rh = _rh;
 		this->setLvl(0);

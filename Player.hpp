@@ -9,7 +9,7 @@ namespace rpf {
 	class Player {
 	public:
 		int score = 0;
-		Player(ResourceHolder *rh, Map* m, Game* _game);
+		Player(ResourceHolder *rh, Map* m, Game* _game, int id);
 		void KeyPress(sf::Keyboard::Key k);
 		void KeyRelease(sf::Keyboard::Key k);
 		void update();
@@ -18,8 +18,10 @@ namespace rpf {
 		void dead();
 		bool isDead() { return killed; }
 		int getLife() { return life; }
+		int getId() { return id; }
 		sf::Sprite& getDrawable() { return this->current_sprite; }
 	private:
+		int id;
 		int lastspawn_x = 0, lastspawn_y = 0;
 		int lastview_x = 0, lastview_y = 0;
 		int life = 1;

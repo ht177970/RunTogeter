@@ -3,7 +3,8 @@
 #include <iostream>
 
 namespace rpf {
-	Player::Player(ResourceHolder* rh, Map* m, Game* _game) {
+	Player::Player(ResourceHolder* rh, Map* m, Game* _game, int id) {
+		this->id = id;
 		this->rh = rh;
 		this->back_map = m;
 		this->_game = _game;

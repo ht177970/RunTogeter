@@ -2,7 +2,8 @@
 #include "Game.hpp"
 
 namespace rpf {
-	Enemy::Enemy(ResourceHolder* rh, Game* g, int ix, int iy) {
+	Enemy::Enemy(ResourceHolder* rh, Game* g, int ix, int iy, int id) {
+		this->id = id;
 		this->rh = rh;
 		this->ix = ix;
 		this->iy = iy;
