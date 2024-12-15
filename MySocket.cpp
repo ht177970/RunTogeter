@@ -112,7 +112,7 @@ public:
                 std::string data;
                 {
                     std::lock_guard<std::mutex> lock(sout_mutex);
-                    data = sout.str();
+                    data = sout.str().c_str();
                     sout.str("");
                     sout.clear();
                 }
@@ -184,7 +184,7 @@ public:
             std::string data;
             {
                 std::lock_guard<std::mutex> lock(sout_mutex);
-                data = sout.str();
+                data = sout.str().c_str();
                 sout.str("");
                 sout.clear();
             }
