@@ -429,30 +429,75 @@ namespace rpf {
 		int nowid = 1;
 		MySocket* sock = Core::CORE->sock;
 		std::stringstream& in = sock->sin;
+		std::stringstream& out = sock->sout;
 		std::string msg;
-		while (in >> msg) {
-			if (msg == "ask") {
-
+		while (1) {
+			std::string receivedData;
+			{
+				std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				receivedData = in.str();
+				in.str("");
+				in.clear();
 			}
+			if (!receivedData.empty()) {
+				std::cout << "[Received]: " << receivedData << std::endl;
+				std::stringstream handler(receivedData);
+				handler >> msg;
+				if (msg == "ask") {
+					nowid++;
+					out << "players";
+					out << nowid;
+					for (int i = 1; i <= nowid; i++)
+						out << i;
+					out << nowid;
+					out.flush();
+				}
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
 	}
 
-	void handleMsgClient() {//For test, not code here
+	void handleMsgClient(RoomMenu* menu) {//For test, not code here
 		int nowid = 1;
 		MySocket* sock = Core::CORE->sock;
 		std::stringstream& in = sock->sin;
 		std::stringstream& out = sock->sout;
 		std::string msg;
-		while (in >> msg) {
-			if (msg == "ask") {
-				nowid++;
-				out << "players";
-				out << nowid;
-				for (int i = 1; i <= nowid; i++)
-					out << i;
-				out << nowid;
-				out.flush();
+		bool first = 0;
+		while (1) {
+			std::string receivedData;
+			{
+				std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				receivedData = in.str();
+				in.str("");
+				in.clear();
 			}
+			if (!receivedData.empty()) {
+				std::cout << "[Received]: " << receivedData << std::endl;
+				std::stringstream handler(receivedData);
+				handler >> msg;
+				if (msg == "players") {
+					if (first) {
+						int N;
+						handler >> N;
+						int tmp;
+						for (int i = 0; i < N; i++)
+							handler >> tmp;
+						handler >> tmp;
+						continue;//ignore
+					}
+					menu->leaved.push_back(1);
+					first = 1;
+					int N;
+					handler >> N;
+					int tmp;
+					for (int i = 0; i < N; i++)
+						handler >> tmp, menu->joined.push_back(tmp);
+					handler >> tmp;
+					menu->selfId = tmp;
+				}
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
 	}
 
@@ -467,18 +512,28 @@ namespace rpf {
 			if (connectionSuccess) {
 				//std::vector<int> players = { 1, 2, 3, 4 }; // 模擬玩家清單
 				//int selfId = 2; // 假設自己的編號
-				sock->sout << "ask";
-				sock->sout.flush();
-				std::string tmp;
+				{
+					std::lock_guard<std::mutex> lock(sock->sout_mutex);
+					sock->sout << "ask" << "\n";
+				}
+				int selfId = 1;
+				std::vector<int> players = { 1 };
+				//int selfId = 3;
+				//std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				/*std::string tmp;
+				while (sock->sin.eof())
+					sleep(50);
 				sock->sin >> tmp;
 				int N = 10;
 				sock->sin >> N;
 				std::vector<int> players(N);
 				for (auto& i : players)
 					sock->sin >> i;
-				int selfId = 3;
-				sock->sin >> selfId;
-				Core::CORE->switchMode(new RoomMenu(rm, rh, players, selfId));
+				sock->sin >> selfId;*/
+				RoomMenu* menu = new RoomMenu(rm, rh, players, selfId);
+				Core::CORE->switchMode(menu);
+
+				std::thread([this, menu]() { handleMsgClient(menu); }).detach();
 			}
 			else {
 				errorText.setString("Connection failed!"); // 顯示錯誤
