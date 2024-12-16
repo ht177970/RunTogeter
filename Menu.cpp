@@ -440,6 +440,13 @@ namespace rpf {
 			}
 			if (!receivedData.empty()) {
 				std::cout << "[Received]: " << receivedData << std::endl;
+				int pos = 0;
+				while (receivedData[pos] != '\n')
+					pos++;
+				{
+					std::lock_guard<std::mutex> lock(sock->sin_mutex);
+					in << receivedData.substr(pos + 1);
+				}
 				std::stringstream handler(receivedData);
 				handler >> msg;
 				if (msg == "ask") {
@@ -604,8 +611,8 @@ namespace rpf {
 
 			int selfId = sock->server_fd;
 			std::vector<int> players = { selfId };
-
-			Core::CORE->switchMode(new RoomMenu(rm, rh, players, selfId));
+			RoomMenu* menu = new RoomMenu(rm, rh, players, selfId);
+			Core::CORE->switchMode(menu);
 
 			std::thread([this]() { handleMsgServer(); }).detach();
 		}
@@ -622,6 +629,7 @@ namespace rpf {
 		: ClickableMenu(rm, rh), players(players), selfId(selfId) {
 		rm->clear();
 		this->m_font = rh->font;
+		this->roomOwner = (selfId != 0);
 		this->initMenu();
 	}
 
@@ -635,9 +643,9 @@ namespace rpf {
 
 		renderPlayers();
 
-		sf::String texts[] = { "Leave Room", "Test del", "Test add"};
-		Pos position(rh->s_width / 2, rh->s_height - 300); // 放在底部 //-100
-		for (int i = 0; i < 3; i++) {
+		sf::String texts[] = { "Leave Room", "Start RACE"};
+		Pos position(rh->s_width / 2, rh->s_height - 200); // 放在底部 //-100
+		for (int i = 0; i < (roomOwner ? 2 : 1); i++) {
 			Text* tmp = new Text(texts[i], position.AddY(40), rh->font);
 			tmp->setTextSize(30U);
 			tmp->setId(i);
@@ -677,10 +685,7 @@ namespace rpf {
 				free(Core::CORE->sock);*///free causes bugs
 		}
 		else if (index == 1) {
-			leaved.push_back(2);
-		}
-		if (index == 2) {
-			joined.push_back(5);
+			Core::CORE->switchMode(Mode::IN_GAME);
 		}
 	}
 

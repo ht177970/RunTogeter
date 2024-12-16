@@ -147,13 +147,14 @@ namespace rpf {
 
 	class RoomMenu : public ClickableMenu {
 	public:
-		RoomMenu(RenderManager* rm, ResourceHolder* rh, std::vector<int> players, int selfId);
+		explicit RoomMenu(RenderManager* rm, ResourceHolder* rh, std::vector<int> players, int selfId);
 
 		void initMenu();
 		void EnterPressed(int index) override;
 		void update() override;
 		std::vector<int> joined, leaved;
 		int selfId; // 自己的編號
+		bool roomOwner = false;
 	private:
 		std::vector<int> players; // 所有玩家編號
 		std::vector<std::pair<int, sf::Text*>> playerTexts; // 用於顯示玩家的文字物件
