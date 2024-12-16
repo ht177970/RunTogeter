@@ -22,6 +22,7 @@ namespace rpf {
 		void switchMode(Mode mode);
 		void switchMode(Render* obj);
 		MySocket* sock;
+		std::vector<int> joined, leaved;
 	private:
 		sf::RenderWindow window;
 		RenderManager rm;

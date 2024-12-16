@@ -11,6 +11,9 @@
 #include <string>
 #include <iostream>
 #include <cstring>
+#include <queue>
+
+#include "Core.hpp"
 
 class MySocket {
 public:
@@ -127,6 +130,7 @@ public:
     }
     int server_fd;  // Server socket file descriptor
     std::unordered_map<int, int> clients;  // 客戶端的連線
+    std::queue<int> joined, leaved;
     std::mutex clients_mutex;  // 保護 clients 資料結構
     std::mutex sin_mutex;      // 保護 sin
     std::mutex sout_mutex;     // 保護 sout
@@ -145,6 +149,8 @@ public:
             {
                 std::lock_guard<std::mutex> lock(clients_mutex);
                 clients[client_fd] = client_fd;
+                joined.push(client_fd);
+                rpf::Core::CORE->joined.push_back(client_fd);
             }
 
             std::cout << "New client connected." << std::endl;
@@ -166,6 +172,8 @@ public:
                 {
                     std::lock_guard<std::mutex> lock(clients_mutex);
                     clients.erase(client_fd);
+                    leaved.push(client_fd);
+                    rpf::Core::CORE->leaved.push_back(client_fd);
                 }
                 break;
             }
