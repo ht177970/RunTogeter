@@ -131,9 +131,7 @@ namespace rpf {
 
 		rm->addGraphics(&bar.panel);
 		rm->addGraphics(&bar.life);
-		rm->addGraphics(&bar.life_text);
-		rm->addGraphics(&bar.score);
-		rm->addGraphics(&bar.highest_score);
+		rm->addGraphics(&bar.time_text);
 	}
 
 	GameOnline::GameOnline(RenderManager* _rm, ResourceHolder* _rh) : p(_rh, &back_map, this, idnum++), bar(_rh) {
@@ -195,8 +193,10 @@ namespace rpf {
 
 		for (auto& [_, op] : online_players)
 			op->update();
-		if(!finish)
+		if (!finish) {
 			p.update();
+			bar.update(clk.getElapsedTime().asSeconds());
+		}
 		for (Bullet* b : bullets)
 			b->update();
 		for (Coin* c : coins)
@@ -205,7 +205,6 @@ namespace rpf {
 			emy->update();
 		if (portal)
 			portal->update();
-		bar.update(p.score, p.getLife());
 
 		if (!finish && !p.isDead()) {
 			this->check_bullets_hit_emy();

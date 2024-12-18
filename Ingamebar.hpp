@@ -23,7 +23,7 @@ namespace rpf {
 		IngameMulBar(ResourceHolder* rh);
 		sf::RectangleShape panel;
 		sf::Sprite life;
-		sf::Text time;
+		sf::Text time_text;
 		void update(float time);
 	private:
 		ResourceHolder* rh;

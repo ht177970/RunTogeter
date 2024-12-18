@@ -53,7 +53,8 @@ namespace rpf {
 		RenderManager* rm;
 		Map map;
 		Map back_map;
-		IngameBar bar;
+		//IngameBar bar;
+		IngameMulBar bar;
 		std::vector<int> current_level;
 		std::vector<int> current_background;
 		std::vector<Bullet*> bullets;

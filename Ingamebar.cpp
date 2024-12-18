@@ -47,4 +47,32 @@ namespace rpf {
 
 		nowx = rh->view->getCenter().x;
 	}
+	IngameMulBar::IngameMulBar(ResourceHolder* rh) {
+		if (!rh)
+			return;
+		this->rh = rh;
+		panel.setSize(sf::Vector2f(rh->s_width, 100));
+		panel.setFillColor(sf::Color(0x00000055));
+
+		life.setTexture(rh->player_idle[0], true);
+		life.setScale(0.2, 0.2);
+		life.setPosition(10, 10);
+
+		time_text.setFont(rh->font);
+		time_text.setString("0.000000s");
+		time_text.setOrigin(0, time_text.getLocalBounds().height * 2);
+		time_text.setPosition(120, 100);
+
+		nowx = rh->s_width / 2;
+	}
+
+	void IngameMulBar::update(float time) {
+		panel.move(rh->view->getCenter().x - nowx, 0);
+		life.move(rh->view->getCenter().x - nowx, 0);
+		time_text.move(rh->view->getCenter().x - nowx, 0);
+
+		time_text.setString(std::to_string(time) + "s");
+
+		nowx = rh->view->getCenter().x;
+	}
 }
