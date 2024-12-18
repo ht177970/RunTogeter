@@ -79,6 +79,7 @@ namespace rpf {
 			0.2 * rh->trans
 			* (1.f * rh->player_idle[0].getSize().y / current_sprite.getTextureRect().height));
 		current_sprite.setOrigin(0, current_sprite.getTextureRect().height);//LeftDown
+		current_sprite.setColor(sf::Color(255, 255, 255, 128));
 	}
 
 	void PlayerOnline::dead() {

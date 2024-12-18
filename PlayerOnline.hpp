@@ -18,7 +18,7 @@ namespace rpf {
 		int id;
 		const float unit_speed = 7;//10
 		const int ani_speed = 2;
-		const int dead_delay = 45;//TODO:to match respawn time
+		const int dead_delay = 40;//TODO:to match respawn time
 		const float g = 0.8;
 		bool w_key = false;
 		bool space_key = false;
