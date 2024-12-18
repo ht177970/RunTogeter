@@ -36,20 +36,6 @@ namespace rpf {
 					rm->addGraphics(&coin->getDrawable());
 					break;
 				}
-				//case 10676479://end(portal)
-				//	if (f == 0) {
-				//		this->portal = new Portal(rh, j, i);
-				//		rm->addGraphics(&portal->getDrawable());
-				//		//px = j, py = i;
-				//		xs.push_back(j);
-				//		ys.push_back(i);
-				//	}
-				//	else {
-				//		toxs.push_back(j);
-				//		toys.push_back(i);
-				//	}
-				//	f = !f;
-				//	break;
 				case 3978044671:
 				case 2281707007:
 				{
@@ -95,8 +81,6 @@ namespace rpf {
 		nowp = 0;
 		px = xs[nowp];
 		py = ys[nowp];
-		//sf::Color col = rh->maps[level].getPixel(6, 14);//
-		//std::cout << col.toInteger() << '\n';//
 		map.load("img/Tiles.png", sf::Vector2u(64, 64), current_level, rh->maps[level].getSize().x, rh->maps[level].getSize().y);
 		map.setScale(rh->trans, rh->trans);
 	}
@@ -130,7 +114,7 @@ namespace rpf {
 	}
 
 	void Game::init_render() {
-		rh->view->setCenter(rh->s_width / 3 * 2, rh->s_height / 2);
+		rh->view->setCenter(rh->s_width * 4 / 3 - 100, rh->s_height / 2);
 		rm->setView(rh->view);
 		rm->addGraphics(&rh->back_sprite);
 		rm->addGraphics(&back_map);
@@ -230,8 +214,6 @@ namespace rpf {
 				{
 					p.score += (*emy)->getScore() * (level + 1);
 					rm->delGraphic(*b);
-					/*rm->delGraphic(&(*emy)->getDrawable());
-					enemies.erase(emy);*/
 					b = bullets.erase(b);
 					rh->monster_death.play();
 					(*emy)->dead();
@@ -263,7 +245,6 @@ namespace rpf {
 		for (auto c = coins.begin(); c != coins.end();) {
 			if (p.getDrawable().getGlobalBounds().intersects((*c)->getDrawable().getGlobalBounds())) {
 				p.score += (*c)->getScore();
-				//std::cout << p.score << '\n';
 				rm->delGraphic(&(*c)->getDrawable());
 				c = coins.erase(c);
 				rh->pickup.play();
@@ -287,7 +268,8 @@ namespace rpf {
 				py = ys[nowp];
 			}
 			else {
-				//Win
+				rh->cheer.play();
+				Core::CORE->switchMode(rpf::Mode::GAME_OVER);
 			}
 		}
 #ifdef RDEBUG
@@ -331,24 +313,16 @@ namespace rpf {
 
 	void Game::setLvl(int lvl) {
 		level = lvl;
-		if (level == rh->no_of_maps) {
-			rh->cheer.play();
-			Core::CORE->switchMode(rpf::Mode::GAME_OVER);
-			return;
-		}
 		rm->clear();
 		for (Bullet* bullet : bullets) {
-			//bullet->~Bullet();
 			free(bullet);
 		}
 		bullets.clear();
 		for (Coin* coin : coins) {
-			//coin->~Coin();
 			free(coin);
 		}
 		coins.clear();
 		for (Enemy* enemy : enemies) {
-			//enemy->~Enemy();
 			free(enemy);
 		}
 		enemies.clear();

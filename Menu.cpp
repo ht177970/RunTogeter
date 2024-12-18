@@ -517,7 +517,7 @@ namespace rpf {
 					out << "dead " << myid << std::endl;
 				}
 				for (Bullet* b : game->bullets_out) {
-					out << "bullet " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
+					out << "bullet " << myid << " " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
 				}
 				game->bullets_out.clear();
 			}
@@ -537,6 +537,7 @@ namespace rpf {
 					std::lock_guard<std::mutex> lock(sock->sin_mutex);
 					in << receivedData.substr(pos + 1);
 				}
+				receivedData = receivedData.substr(0, pos + 1);
 				std::stringstream handler(receivedData);
 				handler >> msg;
 				if (msg == "player") {
@@ -578,9 +579,10 @@ namespace rpf {
 					out.flush();
 				}
 				else if (msg == "bullet") {
+					int id;
 					int x, y, speed;
-					handler >> x >> y >> speed;
-					{
+					handler >> id >> x >> y >> speed;
+					if(id != myid) {
 						std::lock_guard<std::mutex> lock(game->obj_mutex);
 						game->bullets_in.push_back(new Bullet(x, y, speed, game->rh));
 					}
@@ -624,7 +626,7 @@ namespace rpf {
 					out << "dead " << myid << std::endl;
 				}
 				for (Bullet* b : game->bullets_out) {
-					out << "bullet " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
+					out << "bullet " << myid << " " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
 				}
 				game->bullets_out.clear();
 			}
@@ -682,12 +684,14 @@ namespace rpf {
 					}
 				}
 				else if (msg == "bullet") {
+					int id;
 					int x, y, speed;
-					in >> x >> y >> speed;
-					{
+					in >> id >> x >> y >> speed;
+					if (id != myid) {
 						std::lock_guard<std::mutex> lock(game->obj_mutex);
 						game->bullets_in.push_back(new Bullet(x, y, speed, game->rh));
 					}
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
 				}
 				msg = "";
 			}

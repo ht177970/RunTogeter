@@ -3,6 +3,7 @@
 #include "Bullet.hpp"
 #include "Core.hpp"
 #include "PlayerOnline.hpp"
+#include "MySocket.cpp"
 
 namespace rpf {
 
@@ -115,7 +116,7 @@ namespace rpf {
 	}
 
 	void GameOnline::init_render() {
-		rh->view->setCenter(rh->s_width / 3 * 2, rh->s_height / 2);
+		rh->view->setCenter(rh->s_width * 4 / 3 - 100, rh->s_height / 2);
 		rm->setView(rh->view);
 		rm->addGraphics(&rh->back_sprite);
 		rm->addGraphics(&back_map);
@@ -168,7 +169,6 @@ namespace rpf {
 
 		{
 			std::lock_guard<std::mutex> lock(obj_mutex);
-			//handle bullet and players position
 			for (Bullet* b : bullets_in) {
 				bullets.push_back(b);
 				rm->addGraphics(b);
@@ -214,7 +214,6 @@ namespace rpf {
 		bar.update(p.score, p.getLife());
 
 		if (!p.isDead()) {
-			//this->check_bullets_out();
 			this->check_bullets_hit_emy();
 			this->check_bullets_hit_block();
 			this->check_player_enemy();
@@ -232,12 +231,8 @@ namespace rpf {
 			player_data.y_speed = p.getYspeed();
 			if (p.getShoot() && p.getAnim() == 1)
 				shoot = 1;
-			/*else
-				shoot = 0;*/
 			if (p.getKill() && p.getAnim() == 1)
 				dead = 1;
-			/*else
-				dead = 0;*/
 		}
 
 		rh->back_sprite.setPosition(rh->view->getCenter().x - rh->view->getSize().x, 0);
@@ -286,8 +281,6 @@ namespace rpf {
 				{
 					p.score += (*emy)->getScore() * (level + 1);
 					rm->delGraphic(*b);
-					/*rm->delGraphic(&(*emy)->getDrawable());
-					enemies.erase(emy);*/
 					b = bullets.erase(b);
 					rh->monster_death.play();
 					(*emy)->dead();
@@ -319,7 +312,6 @@ namespace rpf {
 		for (auto c = coins.begin(); c != coins.end();) {
 			if (p.getDrawable().getGlobalBounds().intersects((*c)->getDrawable().getGlobalBounds())) {
 				p.score += (*c)->getScore();
-				//std::cout << p.score << '\n';
 				rm->delGraphic(&(*c)->getDrawable());
 				c = coins.erase(c);
 				rh->pickup.play();
@@ -343,18 +335,13 @@ namespace rpf {
 				py = ys[nowp];
 			}
 			else {
-				//Win
+				{
+					MySocket* sock = Core::CORE->sock;
+					std::lock_guard<std::mutex> lock(sock->sout_mutex);
+					sock->sout << "end " << 
+				}
 			}
 		}
-#ifdef RDEBUG
-		if (test++ == 10) {
-			test = 0;
-			std::cout << (p.getDrawable().getGlobalBounds().left - map.getPosition().x) / rh->tile_size <<
-				' ' << (p.getDrawable().getGlobalBounds().top +
-					p.getDrawable().getGlobalBounds().height -
-					map.getPosition().y) / rh->tile_size << '\n';
-		}
-#endif
 	}
 
 	void GameOnline::check_player_enemy() {
@@ -394,17 +381,14 @@ namespace rpf {
 		}
 		rm->clear();
 		for (Bullet* bullet : bullets) {
-			//bullet->~Bullet();
 			free(bullet);
 		}
 		bullets.clear();
 		for (Coin* coin : coins) {
-			//coin->~Coin();
 			free(coin);
 		}
 		coins.clear();
 		for (Enemy* enemy : enemies) {
-			//enemy->~Enemy();
 			free(enemy);
 		}
 		enemies.clear();

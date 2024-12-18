@@ -42,12 +42,10 @@ namespace rpf {
 		std::vector<Bullet*> bullets_out, bullets_in;
 		std::unordered_map<int, data> poses;
 		std::unordered_map<int, int> shoots, deads;
-		//float player_x = -1, player_y = -1;
 		data player_data;
 		bool shoot = false;
 		bool dead = false;
-		
-	//private:
+	private:
 		int idnum = 1;
 		Player p;
 		RenderManager* rm;
