@@ -62,7 +62,8 @@ set(SOURCES
     RenderManager.cpp
     ResourceHolder.cpp
     MySocket.cpp
-)
+    GameOnline.cpp
+    PlayerOnline.cpp)
 
 set(HEADERS
     Bullet.hpp
@@ -79,7 +80,8 @@ set(HEADERS
     ResourceHolder.hpp
     Ingamebar.hpp
     MySocket.hpp
-)
+    GameOnline.cpp
+    PlayerOnline.cpp)
 
 # ------------------------------------------------------------
 # 建立可執行檔

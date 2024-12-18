@@ -1,13 +1,12 @@
-#include "Game.hpp"
+#include "GameOnline.hpp"
 #include <iostream>
 #include "Bullet.hpp"
 #include "Core.hpp"
+#include "PlayerOnline.hpp"
 
 namespace rpf {
 
-	Game::Game() : p(NULL, NULL, NULL, -1), bar(NULL) {}
-
-	void Game::init_level() {
+	void GameOnline::init_level() {
 		int id = 0;
 		current_level.clear();
 		bool f = 0;
@@ -31,25 +30,11 @@ namespace rpf {
 					break;
 				case 4291366655://coin
 				{
-					Coin* coin = new Coin(rh, j, i, idnum++);
+					/*Coin* coin = new Coin(rh, j, i, idnum++);
 					coins.push_back(coin);
-					rm->addGraphics(&coin->getDrawable());
+					rm->addGraphics(&coin->getDrawable());*/
 					break;
 				}
-				//case 10676479://end(portal)
-				//	if (f == 0) {
-				//		this->portal = new Portal(rh, j, i);
-				//		rm->addGraphics(&portal->getDrawable());
-				//		//px = j, py = i;
-				//		xs.push_back(j);
-				//		ys.push_back(i);
-				//	}
-				//	else {
-				//		toxs.push_back(j);
-				//		toys.push_back(i);
-				//	}
-				//	f = !f;
-				//	break;
 				case 3978044671:
 				case 2281707007:
 				{
@@ -101,7 +86,7 @@ namespace rpf {
 		map.setScale(rh->trans, rh->trans);
 	}
 
-	void Game::init_bg() {
+	void GameOnline::init_bg() {
 		int id = -1;
 		current_background.clear();
 
@@ -129,12 +114,18 @@ namespace rpf {
 		back_map.setScale(rh->trans, rh->trans);
 	}
 
-	void Game::init_render() {
+	void GameOnline::init_render() {
 		rh->view->setCenter(rh->s_width / 3 * 2, rh->s_height / 2);
 		rm->setView(rh->view);
 		rm->addGraphics(&rh->back_sprite);
 		rm->addGraphics(&back_map);
 		rm->addGraphics(&map);
+		for (auto& it : poses) {
+			int id = it.first;
+			PlayerOnline* online_player = new PlayerOnline(rh, id);
+			online_players[id] = online_player;
+			rm->addGraphics(&online_player->getDrawable());
+		}
 		rm->addGraphics(&p.getDrawable());
 
 		rm->addGraphics(&bar.panel);
@@ -144,20 +135,28 @@ namespace rpf {
 		rm->addGraphics(&bar.highest_score);
 	}
 
-	Game::Game(RenderManager* _rm, ResourceHolder* _rh) : p(_rh, &back_map, this, idnum++), bar(_rh) {
+	GameOnline::GameOnline(RenderManager* _rm, ResourceHolder* _rh) : p(_rh, &back_map, this, idnum++), bar(_rh) {
 		this->rm = _rm;
 		this->rh = _rh;
-		this->setLvl(0);
+		//this->setLvl(0);
 	}
 
-	void Game::handleEvent(sf::Event e) {
+	void GameOnline::handleEvent(sf::Event e) {
 		if (e.type == sf::Event::KeyPressed)
 			p.KeyPress(e.key.code);
 		else if (e.type == sf::Event::KeyReleased)
 			p.KeyRelease(e.key.code);
 	}
 
-	void Game::update() {
+	void GameOnline::update() {
+		if (!init) {
+			std::lock_guard<std::mutex> lock(obj_mutex);
+			if (wait) {
+				wait = false;
+				this->setLvl(level);
+			}
+			return;
+		}
 		if (p.score > Core::highest_score)
 			Core::highest_score = p.score;
 
@@ -167,6 +166,42 @@ namespace rpf {
 			return;
 		}
 
+		{
+			std::lock_guard<std::mutex> lock(obj_mutex);
+			//handle bullet and players position
+			for (Bullet* b : bullets_in) {
+				bullets.push_back(b);
+				rm->addGraphics(b);
+			}
+			for (auto& [id, data] : poses) {
+				if (online_players.find(id) == online_players.end())
+					continue;
+				PlayerOnline* op = online_players[id];
+				op->getDrawable().setPosition(data.x, data.y);
+				op->x_speed = data.x_speed;
+				op->y_speed = data.y_speed;
+			}
+			for (auto& [_, id] : shoots) {
+				if (online_players.find(id) == online_players.end())
+					continue;
+				PlayerOnline* op = online_players[id];
+				op->shooting = 1;
+				op->anim_index = 0;
+			}
+			for (auto& [id, data] : deads) {
+				if (online_players.find(id) == online_players.end())
+					continue;
+				PlayerOnline* op = online_players[id];
+				op->killed = 1;
+				op->anim_index = 0;
+			}
+			bullets_in.clear();
+			shoots.clear();
+			deads.clear();
+		}
+
+		for (auto& [_, op] : online_players)
+			op->update();
 		p.update();
 		for (Bullet* b : bullets)
 			b->update();
@@ -179,7 +214,7 @@ namespace rpf {
 		bar.update(p.score, p.getLife());
 
 		if (!p.isDead()) {
-			this->check_bullets_out();
+			//this->check_bullets_out();
 			this->check_bullets_hit_emy();
 			this->check_bullets_hit_block();
 			this->check_player_enemy();
@@ -188,28 +223,49 @@ namespace rpf {
 			this->check_enemy();
 		}
 
+		{
+			std::lock_guard<std::mutex> lock(obj_mutex);
+			sf::Vector2f pos = p.getDrawable().getPosition();
+			player_data.x = pos.x;
+			player_data.y = pos.y;
+			player_data.x_speed = p.getXspeed();
+			player_data.y_speed = p.getYspeed();
+			if (p.getShoot() && p.getAnim() == 1)
+				shoot = 1;
+			/*else
+				shoot = 0;*/
+			if (p.getKill() && p.getAnim() == 1)
+				dead = 1;
+			/*else
+				dead = 0;*/
+		}
+
 		rh->back_sprite.setPosition(rh->view->getCenter().x - rh->view->getSize().x, 0);
 	}
 
-	bool Game::is_empty_block(int x, int y) {
+	bool GameOnline::is_empty_block(int x, int y) {
 		if (x < 0 || x >= map.m_width || y < 0 || y >= map.m_height)
 			return true;
 		return current_level[y * map.m_width + x] == -1;
 	}
 
-	sf::Vector2f Game::get_cord_of_tile(int x, int y)
+	sf::Vector2f GameOnline::get_cord_of_tile(int x, int y)
 	{
 		return sf::Vector2f((x * rh->tile_size) + map.getPosition().x, y * rh->tile_size + map.getPosition().y);
 	}
 
-	void Game::player_shot(sf::FloatRect bounds, bool flip) {
+	void GameOnline::player_shot(sf::FloatRect bounds, bool flip) {
 		Bullet* b = new Bullet(bounds.left + (flip ? 0 : bounds.width - 15), bounds.top + 35,
 			flip ? -20 : 20, rh);
+		{
+			std::lock_guard<std::mutex> lock(obj_mutex);
+			bullets_out.push_back(b);
+		}
 		bullets.push_back(b);
 		rm->addGraphics(b);
 	}
 
-	void Game::check_bullets_out() {
+	void GameOnline::check_bullets_out() {
 		for (auto b = bullets.begin(); b != bullets.end();) {
 			auto pos = rm->getPosOnWindow(*b);
 			if (pos.x < 0 || pos.x > rh->s_width) {
@@ -221,11 +277,11 @@ namespace rpf {
 		}
 	}
 
-	void Game::check_bullets_hit_emy() {
+	void GameOnline::check_bullets_hit_emy() {
 		bool f;
 		for (auto b = bullets.begin(); b != bullets.end();) {
 			f = false;
-			for (auto emy = enemies.begin(); emy != enemies.end();emy++) {
+			for (auto emy = enemies.begin(); emy != enemies.end(); emy++) {
 				if (!(*emy)->killed && (*b)->getGlobalBounds().intersects((*emy)->getDrawable().getGlobalBounds()))
 				{
 					p.score += (*emy)->getScore() * (level + 1);
@@ -244,9 +300,9 @@ namespace rpf {
 		}
 	}
 
-	void Game::check_bullets_hit_block() {
+	void GameOnline::check_bullets_hit_block() {
 		for (auto b = bullets.begin(); b != bullets.end();) {
-			int x = ((*b)->getGlobalBounds().left + 
+			int x = ((*b)->getGlobalBounds().left +
 				((*b)->getSpeed() > 0 ? (*b)->getGlobalBounds().width : 0)
 				- getMap().getPosition().x) / rh->tile_size;
 			if (!is_empty_block(x, (*b)->getGlobalBounds().top / rh->tile_size))
@@ -259,7 +315,7 @@ namespace rpf {
 		}
 	}
 
-	void Game::check_coin() {
+	void GameOnline::check_coin() {
 		for (auto c = coins.begin(); c != coins.end();) {
 			if (p.getDrawable().getGlobalBounds().intersects((*c)->getDrawable().getGlobalBounds())) {
 				p.score += (*c)->getScore();
@@ -273,11 +329,11 @@ namespace rpf {
 		}
 	}
 
-	void Game::check_portal() {
+	void GameOnline::check_portal() {
 		if (portal && px == (int)(p.getDrawable().getGlobalBounds().left - map.getPosition().x) / rh->tile_size &&
-					  py == (int)(p.getDrawable().getGlobalBounds().top + 
-						  p.getDrawable().getGlobalBounds().height -
-						  map.getPosition().y) / rh->tile_size) {
+			py == (int)(p.getDrawable().getGlobalBounds().top +
+				p.getDrawable().getGlobalBounds().height -
+				map.getPosition().y) / rh->tile_size) {
 			p.score += (level + 1) * 400;
 			rh->view->move((toxs[nowp] - px) * 48, 0);
 			p.NEWspawn((toxs[nowp] - px) * 48, (toys[nowp] - py) * 48);
@@ -301,7 +357,7 @@ namespace rpf {
 #endif
 	}
 
-	void Game::check_player_enemy() {
+	void GameOnline::check_player_enemy() {
 		for (auto emy : enemies) {
 			if (!emy->killed && emy->getDrawable().getGlobalBounds().intersects(p.getDrawable().getGlobalBounds())) {
 				p.dead();
@@ -310,7 +366,7 @@ namespace rpf {
 		}
 	}
 
-	void Game::check_enemy() {
+	void GameOnline::check_enemy() {
 		for (auto emy = enemies.begin(); emy != enemies.end();) {
 			if ((*emy)->isDead()) {
 				rm->delGraphic(&(*emy)->getDrawable());
@@ -321,15 +377,15 @@ namespace rpf {
 		}
 	}
 
-	void Game::resetLvl() {
+	void GameOnline::resetLvl() {
 		setLvl(level);
 	}
 
-	void Game::nextLvl() {
+	void GameOnline::nextLvl() {
 		setLvl(level + 1);
 	}
 
-	void Game::setLvl(int lvl) {
+	void GameOnline::setLvl(int lvl) {
 		level = lvl;
 		if (level == rh->no_of_maps) {
 			rh->cheer.play();
@@ -356,5 +412,6 @@ namespace rpf {
 		this->init_render();
 		this->init_level();
 		this->init_bg();
+		init = true;
 	}
 }

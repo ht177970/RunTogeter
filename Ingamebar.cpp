@@ -4,6 +4,8 @@
 
 namespace rpf {
 	IngameBar::IngameBar(ResourceHolder* rh) {
+		if (!rh)
+			return;
 		this->rh = rh;
 		panel.setSize(sf::Vector2f(rh->s_width, 100));
 		panel.setFillColor(sf::Color(0x00000055));

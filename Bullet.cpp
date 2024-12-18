@@ -1,7 +1,7 @@
 #include "Bullet.hpp"
 
 namespace rpf {
-	Bullet::Bullet(int x, int y, int speed, ResourceHolder* rh) {
+	Bullet::Bullet(int x, int y, int speed, ResourceHolder* rh) :x(x), y(y) {
 		setRadius(5);
 		setTexture(&rh->bullet);
 		x_speed = speed;

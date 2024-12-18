@@ -8,13 +8,14 @@ namespace rpf {
 		this->rh = rh;
 		this->back_map = m;
 		this->_game = _game;
-		//this->current_sprite.setPosition(200.f, 500.f);
 	}
 
 	void Player::spawn(int x, int y) {
-		lastspawn_x = x * rh->tile_size * rh->trans;
-		lastspawn_y = y * rh->tile_size * rh->trans;
-		this->current_sprite.setPosition(x * rh->tile_size * rh->trans, y * rh->tile_size * rh->trans);
+		lastspawn_x = x * rh->tile_size;
+		lastspawn_y = y * rh->tile_size;
+		/*lastspawn_x += rh->view->getCenter().x - rh->s_width / 2;
+		lastspawn_y += rh->view->getCenter().y - rh->s_height / 2;*/
+		this->current_sprite.setPosition(lastspawn_x, lastspawn_y);
 		lastview_x = rh->view->getCenter().x;
 		lastview_y = rh->view->getCenter().y;
 	}
@@ -85,8 +86,6 @@ namespace rpf {
 			update_spr();
 		}
 		else {
-			/*update_current_tiles();
-			check_move_y();*/
 			death_anim();
 		}
 	}
@@ -107,14 +106,6 @@ namespace rpf {
 
 	void Player::shoot() {
 		if (space_key && !shooting) {
-			/*bool move = true;
-			int dx = flip ? current_tile_x_right + 1 : current_tile_x_left - 1;
-			float ix = flip ? -(current_sprite.getGlobalBounds().left + current_sprite.getGlobalBounds().width) : rh->tile_size - current_sprite.getGlobalBounds().left;
-			for (int i = current_tile_y_top; i <= current_tile_y_bottom; i++)
-				if (!_game->is_empty_block(dx, i))
-					move = false;
-			if(move)
-				current_sprite.move(shot_dx * (flip ? 1 : -1), 0);*/
 			shooting = true;
 			anim_index = 0;
 			_game->player_shot(current_sprite.getGlobalBounds(), flip);
@@ -180,6 +171,7 @@ namespace rpf {
 	void Player::check_out() {
 		if (current_sprite.getGlobalBounds().top > rh->s_height) {
 			killed = true;
+			anim_index = x_speed = y_speed = 0;
 			rh->fall.play();
 		}
 	}
@@ -225,12 +217,11 @@ namespace rpf {
 	void Player::death_anim() {
 		if (anim_index == 10 * ani_speed * 2) {
 			if (life && delay++ == dead_delay) {
-				life--;
+				/*life--;
 				if (life == 0)
-					return;
+					return;*/
 				delay = anim_index = x_speed = y_speed = 0;
 				killed = flip = shooting = false;
-				//back_map->setPosition(-1000, 0);
 				current_sprite.setPosition(lastspawn_x, lastspawn_y);
 				rh->view->setCenter(lastview_x, lastview_y);
 			}

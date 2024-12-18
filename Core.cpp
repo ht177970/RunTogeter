@@ -4,9 +4,10 @@
 namespace rpf {
 
 	Core* Core::CORE = nullptr;
+	GameOnline* Core::GAME = nullptr;
 	int Core::highest_score = 0;
 
-	Core::Core() : mode(Mode::IN_GAME), rm(&window) {//mode(Mode::MAIN_MENU)
+	Core::Core() : mode(Mode::MAIN_MENU), rm(&window) {//mode(Mode::MAIN_MENU)
 		window.create(sf::VideoMode(rh.s_width, rh.s_height), "Ryan PlatFormer v3.0", sf::Style::Resize | sf::Style::Close);
 		window.setFramerateLimit(60);
 		window.setKeyRepeatEnabled(false);
@@ -22,6 +23,10 @@ namespace rpf {
 	}
 
 	void Core::update() {
+		if (wait_switch) {
+			wait_switch = false;
+			this->switchMode(wait_mode);
+		}
 		sf::Event e;
 		while (window.pollEvent(e))
 			if (e.type == sf::Event::Closed)
@@ -64,11 +69,18 @@ namespace rpf {
 			rm.clear();
 			now = new ConnectionMenu(&rm, &rh);
 			break;
-		case Mode::IN_GAME:
+		//case Mode::IN_GAME:
+		case Mode::SINGLE_GAME:
 			if (now)
 				free(now);
 			rm.clear();
 			now = new Game(&rm, &rh);
+			break;
+		case Mode::MULTI_GAME:
+			if (now)
+				free(now);
+			rm.clear();
+			now = Core::GAME = new GameOnline(&rm, &rh);
 			break;
 		case Mode::GAME_OVER:
 			now = new GameOverMenu(&rm, &rh);
@@ -85,6 +97,11 @@ namespace rpf {
 		if (now)
 			free(now);
 		now = obj;
+	}
+
+	void Core::switchModeAsync(Mode mode) {
+		wait_switch = true;
+		wait_mode = mode;
 	}
 
 	

@@ -9,7 +9,7 @@ namespace rpf {
 	class Player {
 	public:
 		int score = 0;
-		Player(ResourceHolder *rh, Map* m, Game* _game, int id);
+		Player(ResourceHolder* rh, Map* m, Game* _game, int id);
 		void KeyPress(sf::Keyboard::Key k);
 		void KeyRelease(sf::Keyboard::Key k);
 		void update();
@@ -20,6 +20,11 @@ namespace rpf {
 		int getLife() { return life; }
 		int getId() { return id; }
 		sf::Sprite& getDrawable() { return this->current_sprite; }
+		float getXspeed() { return x_speed; }
+		float getYspeed() { return x_speed; }
+		bool getShoot() { return shooting; }
+		bool getKill() { return killed; }
+		int getAnim() { return anim_index; }
 	private:
 		int id;
 		int lastspawn_x = 0, lastspawn_y = 0;

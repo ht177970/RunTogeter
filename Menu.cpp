@@ -168,7 +168,7 @@ namespace rpf {
 	void TextBox::updateVisuals() {
 		if (isFocused) {
 			box.setOutlineColor(sf::Color::Blue);  // 聚焦時外框顏色變藍
-			box.setOutlineThickness(3.f);         // 增加框線厚度
+			box.setOutlineThickness(5.f);         // 增加框線厚度
 		}
 		else {
 			box.setOutlineColor(sf::Color::Black); // 失焦時恢復黑色
@@ -297,7 +297,7 @@ namespace rpf {
 		rect->setPosition(rh->view->getCenter().x, 0);
 		rm->addGraphics(rect);
 
-		sf::String texts[] = { "Play with others", "Quit the game" };
+		sf::String texts[] = { "Play alone", "Play with others", "Quit the game" };
 		Pos position = Pos(rh->s_width / 2, rh->s_height / 4);
 		unsigned int text_size;
 		text_size = static_cast<unsigned int>(30.f * position.x / 500);
@@ -320,8 +320,10 @@ namespace rpf {
 
 	void MainMenu::EnterPressed(int index) {
 		if (index == 0)
-			Core::CORE->switchMode(Mode::CONNECTION_MENU);
+			Core::CORE->switchMode(Mode::SINGLE_GAME);
 		else if (index == 1)
+			Core::CORE->switchMode(Mode::CONNECTION_MENU);
+		else if (index == 2)
 			Core::CORE->switchMode(Mode::CLOSED);
 	}
 
@@ -430,7 +432,7 @@ namespace rpf {
 		std::stringstream& in = sock->sin;
 		std::stringstream& out = sock->sout;
 		std::string msg;
-		while (1) {
+		while (!Core::GAME) {
 			std::string receivedData;
 			{
 				std::lock_guard<std::mutex> lock(sock->sin_mutex);
@@ -487,13 +489,221 @@ namespace rpf {
 		}
 	}
 
-	void handleMsgClient(RoomMenu* menu) {//For test, not code here
-		int nowid = 1;
+	void handleMsgServerGaming() {//For test, not code here
+		MySocket* sock = Core::CORE->sock;
+		std::stringstream& in = sock->sin;
+		std::stringstream& out = sock->sout;
+		std::string msg;
+		int myid = sock->server_fd;
+		data my_data;
+		GameOnline* game = Core::GAME;
+		int ti = 0;
+		while (game) {
+			if (++ti == 2)
+			{
+				ti = 0;
+				std::lock_guard<std::mutex> lock(game->obj_mutex);
+				if (my_data != game->player_data) {
+					my_data = game->player_data;
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+					out << "player " << myid << " " << my_data.x << " " << my_data.y << " " << my_data.x_speed << " " << my_data.y_speed << std::endl;
+				}
+				if (game->shoot) {
+					game->shoot = 0;
+					out << "shoot " << myid << std::endl;
+				}
+				if (game->dead) {
+					game->dead = 0;
+					out << "dead " << myid << std::endl;
+				}
+				for (Bullet* b : game->bullets_out) {
+					out << "bullet " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
+				}
+				game->bullets_out.clear();
+			}
+			std::string receivedData;
+			{
+				std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				receivedData = in.str();
+				in.str("");
+				in.clear();
+			}
+			if (!receivedData.empty()) {
+				std::cout << "[Received]: " << receivedData << std::endl;
+				int pos = 0;
+				while (receivedData[pos] != '\n')
+					pos++;
+				{
+					std::lock_guard<std::mutex> lock(sock->sin_mutex);
+					in << receivedData.substr(pos + 1);
+				}
+				std::stringstream handler(receivedData);
+				handler >> msg;
+				if (msg == "player") {
+					int id;
+					handler >> id;
+					float x, y, xspeed, yspeed;
+					handler >> x >> y >> xspeed >> yspeed;
+					if (id != myid)
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->poses[id] = { x,y,xspeed,yspeed };
+					}
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+					out << receivedData;
+					out.flush();
+				}
+				else if (msg == "shoot") {
+					int id;
+					handler >> id;
+					if (id != myid)
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->shoots[id] = id;
+					}
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+					out << receivedData;
+					out.flush();
+				}
+				else if (msg == "dead") {
+					int id;
+					handler >> id;
+					if (id != myid)
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->deads[id] = id;
+					}
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+					out << receivedData;
+					out.flush();
+				}
+				else if (msg == "bullet") {
+					int x, y, speed;
+					handler >> x >> y >> speed;
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->bullets_in.push_back(new Bullet(x, y, speed, game->rh));
+					}
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+					out << receivedData;
+					out.flush();
+				}
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
+	}
+
+	void handleMsgClientGaming(int myid) {
 		MySocket* sock = Core::CORE->sock;
 		std::stringstream& sin = sock->sin;
 		std::stringstream& out = sock->sout;
 		std::string msg;
-		bool first = 0;
+		bool first = false;
+		bool start = false;
+		//float x = 0, y = 0;
+		data my_data;
+		GameOnline* game = Core::GAME;
+		game->resetLvlAsync();
+		int ti = 0;
+		while (game) {
+			if(++ti == 2)
+			{
+				ti = 0;
+				std::lock_guard<std::mutex> lock(game->obj_mutex);
+				if (my_data != game->player_data) {
+					my_data = game->player_data;
+					std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+					out << "player " << myid << " " << my_data.x << " " << my_data.y << " " << my_data.x_speed << " " << my_data.y_speed << std::endl;
+				}
+				if (game->shoot) {
+					game->shoot = 0;
+					out << "shoot " << myid << std::endl;
+				}
+				if (game->dead) {
+					game->dead = 0;
+					out << "dead " << myid << std::endl;
+				}
+				for (Bullet* b : game->bullets_out) {
+					out << "bullet " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
+				}
+				game->bullets_out.clear();
+			}
+			std::string receivedData;
+			{
+				std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				receivedData = sin.str();
+				sin.str("");
+				sin.clear();
+			}
+			if (receivedData.empty()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				continue;
+			}
+			std::cout << "[Received]: " << receivedData << std::endl;
+			int pos = 0;
+			while (receivedData[pos] != '\n')
+				pos++;
+			{
+				std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				sin << receivedData.substr(pos + 1);
+			}
+			receivedData = receivedData.substr(0, pos);
+			std::stringstream in(receivedData);
+			{
+				std::lock_guard<std::mutex> lock(sock->sin_mutex);
+				in >> msg;
+				if (msg == "player") {
+					int id;
+					in >> id;
+					float x, y, xspeed, yspeed;
+					in >> x >> y >> xspeed >> yspeed;
+					if (id != myid)
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->poses[id] = { x,y,xspeed,yspeed };
+					}
+				}
+				else if (msg == "shoot") {
+					int id;
+					in >> id;
+					if (id != myid)
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->shoots[id] = id;
+					}
+				}
+				else if (msg == "dead") {
+					int id;
+					in >> id;
+					if (id != myid)
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->deads[id] = id;
+					}
+				}
+				else if (msg == "bullet") {
+					int x, y, speed;
+					in >> x >> y >> speed;
+					{
+						std::lock_guard<std::mutex> lock(game->obj_mutex);
+						game->bullets_in.push_back(new Bullet(x, y, speed, game->rh));
+					}
+				}
+				msg = "";
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
+	}
+
+	void handleMsgClient(RoomMenu* menu) {//For test, not code here
+		MySocket* sock = Core::CORE->sock;
+		std::stringstream& sin = sock->sin;
+		std::stringstream& out = sock->sout;
+		std::string msg;
+		bool first = false;
+		bool start = false;
+		int myid = -1;
+		std::vector<int> ids;
 		while (menu) {
 			std::string receivedData;
 			{
@@ -530,14 +740,14 @@ namespace rpf {
 						continue;//ignore
 					}
 					menu->leaved.push_back(0);
-					first = 1;
+					first = true;
 					int N;
 					in >> N;
 					int tmp;
 					for (int i = 0; i < N; i++)
 						in >> tmp, menu->joined.push_back(tmp);
 					in >> tmp;
-					menu->selfId = tmp;
+					menu->selfId = myid = tmp;
 				}
 				else if (msg == "join") {
 					if (!first) {
@@ -561,9 +771,30 @@ namespace rpf {
 					for (int i = 0; i < N; i++)
 						in >> tmp, menu->leaved.push_back(tmp);
 				}
+				else if (msg == "start") {
+					int N;
+					in >> N;
+					for (int i = 0; i < N; i++) {
+						int id;
+						in >> id;
+						ids.push_back(id);
+					}
+					Core::CORE->switchModeAsync(Mode::MULTI_GAME);
+					start = true;
+					break;
+				}
 				msg = "";
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		if (start && myid != -1) {
+			for (int& id : ids) {
+				if (id == myid)
+					continue;
+				Core::GAME->poses[id] = { -1,-1 };
+			}
+			handleMsgClientGaming(myid);
 		}
 	}
 
@@ -684,8 +915,19 @@ namespace rpf {
 			/*if (Core::CORE->sock)
 				free(Core::CORE->sock);*///free causes bugs
 		}
-		else if (index == 1) {
-			Core::CORE->switchMode(Mode::IN_GAME);
+		else if (index == 1) {// Start Game
+			MySocket* sock = Core::CORE->sock;
+			int N = sock->clients.size() + 1;
+			sock->sout << "start " << N << ' ' << sock->server_fd << ' ';
+			for (auto [_, id] : sock->clients)
+				sock->sout << id << ' ';
+			sock->sout << std::endl;
+			Core::CORE->switchMode(Mode::MULTI_GAME);
+			std::thread([this]() { handleMsgServerGaming(); }).detach();
+			for (auto [_, id] : sock->clients)
+				Core::GAME->poses[id] = { 0,0 };
+			Core::GAME->resetLvl();
+
 		}
 	}
 

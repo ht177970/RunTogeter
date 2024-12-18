@@ -10,7 +10,10 @@ namespace rpf {
 		~Bullet() = default;
 		void update();
 		int getSpeed() { return x_speed; }
+		int getX() { return x; }
+		int getY() { return y; }
 	private:
 		int x_speed = 0;
+		int x = 0, y = 0;
 	};
 }

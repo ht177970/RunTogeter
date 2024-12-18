@@ -11,22 +11,43 @@
 #include "Portal.hpp"
 #include "Enemy.hpp"
 #include "Ingamebar.hpp"
+#include "PlayerOnline.hpp"
+#include "Game.hpp"
+#include <unordered_map>
+#include <mutex>
 //#define RDEBUG
+struct data {
+    float x = 0, y = 0;
+    float x_speed = 0, y_speed = 0;
 
+    bool operator!=(const data& ot) {
+        return x != ot.x || y != ot.y || x_speed != ot.x_speed || y_speed  != ot.y_speed;
+    }
+    //bool dead;
+};
 namespace rpf {
-	class Game : public Render {
+	class GameOnline : public Game {
 	public:
-		Game();
-		Game(RenderManager* rm, ResourceHolder* rh);
-		~Game() = default;
+		GameOnline(RenderManager* rm, ResourceHolder* rh);
+		~GameOnline() = default;
 		void update() override;
 		void handleEvent(sf::Event e) override;
-		virtual void player_shot(sf::FloatRect bounds, bool flip);
-		virtual void resetLvl();
-		virtual bool is_empty_block(int x, int y);
-		virtual sf::Vector2f get_cord_of_tile(int x, int y);
-		virtual Map getMap() { return map; }
-	private:
+		void player_shot(sf::FloatRect bounds, bool flip) override;
+		void resetLvl() override;
+		void resetLvlAsync() { wait = true; };
+		bool is_empty_block(int x, int y) override;
+		sf::Vector2f get_cord_of_tile(int x, int y) override;
+		Map getMap() override { return map; }
+		std::mutex obj_mutex;
+		std::vector<Bullet*> bullets_out, bullets_in;
+		std::unordered_map<int, data> poses;
+		std::unordered_map<int, int> shoots, deads;
+		//float player_x = -1, player_y = -1;
+		data player_data;
+		bool shoot = false;
+		bool dead = false;
+		
+	//private:
 		int idnum = 1;
 		Player p;
 		RenderManager* rm;
@@ -39,6 +60,7 @@ namespace rpf {
 		std::vector<Bullet*> bullets;
 		std::vector<Coin*> coins;
 		std::vector<Enemy*> enemies;
+		std::unordered_map<int, PlayerOnline*> online_players;
 		int nowp = 0;
 		std::vector<int> xs, ys;//add
 		std::vector<int> toxs, toys;//add
@@ -57,6 +79,8 @@ namespace rpf {
 		void check_enemy();
 		void nextLvl();
 		void setLvl(int lvl);
+		bool wait = false;
+		bool init = false;
 #ifdef RDEBUG
 		int test = 0;
 #endif
