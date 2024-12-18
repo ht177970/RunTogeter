@@ -15,16 +15,6 @@
 
 #include "Core.hpp"
 
-//struct data {
-//    float x = 0, y = 0;
-//    float x_speed = 0, y_speed = 0;
-//
-//    bool operator!=(const data& ot) {
-//        return x != ot.x || y != ot.y || x_speed != ot.x_speed || y_speed  != ot.y_speed;
-//    }
-//    //bool dead;
-//};
-
 class MySocket {
 public:
     std::stringstream sin;   // 收到的資料
