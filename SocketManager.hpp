@@ -14,12 +14,13 @@ namespace rpf {
 		bool connect(std::string ip);
 		void loopServer();
 		void loopClient(RoomMenu* menu);
-		//void finish(float time);
+		void finish(float time);
 		void firstConnect();
 		void loopServerGaming();
 		void quitRoom();
 		MySocket* sock;
 	private:
+		std::vector<std::pair<float, int>> ends;
 		GameOnline* game;
 		std::stringstream& in;
 		std::stringstream& out;
@@ -27,6 +28,7 @@ namespace rpf {
 		float time = 0;
 		int ti = 0;
 		int myid = -1;
+		int firstEnd = 0;
 		std::string getline();
 		void updatePlayer();
 		void loopServerAsync();

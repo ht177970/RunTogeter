@@ -159,14 +159,6 @@ namespace rpf {
 			}
 			return;
 		}
-		if (p.score > Core::highest_score)
-			Core::highest_score = p.score;
-
-		if (p.getLife() == 0) {
-			rh->gameover.play();
-			Core::CORE->switchMode(rpf::Mode::GAME_OVER);
-			return;
-		}
 
 		{
 			std::lock_guard<std::mutex> lock(obj_mutex);
@@ -203,7 +195,8 @@ namespace rpf {
 
 		for (auto& [_, op] : online_players)
 			op->update();
-		p.update();
+		if(!finish)
+			p.update();
 		for (Bullet* b : bullets)
 			b->update();
 		for (Coin* c : coins)
@@ -214,7 +207,7 @@ namespace rpf {
 			portal->update();
 		bar.update(p.score, p.getLife());
 
-		if (!p.isDead()) {
+		if (!finish && !p.isDead()) {
 			this->check_bullets_hit_emy();
 			this->check_bullets_hit_block();
 			this->check_player_enemy();
@@ -327,21 +320,19 @@ namespace rpf {
 			py == (int)(p.getDrawable().getGlobalBounds().top +
 				p.getDrawable().getGlobalBounds().height -
 				map.getPosition().y) / rh->tile_size) {
-			p.score += (level + 1) * 400;
-			rh->view->move((toxs[nowp] - px) * 48, 0);
-			p.NEWspawn((toxs[nowp] - px) * 48, (toys[nowp] - py) * 48);
+			if (nowp < toxs.size()) {
+				rh->view->move((toxs[nowp] - px) * 48, 0);
+				p.NEWspawn((toxs[nowp] - px) * 48, (toys[nowp] - py) * 48);
+			}
 			nowp++;
 			if (nowp < xs.size()) {
 				px = xs[nowp];
 				py = ys[nowp];
 			}
 			else {
-
-				{
-					/*MySocket* sock = Core::CORE->sock;
-					std::lock_guard<std::mutex> lock(sock->sout_mutex);
-					sock->sout << "end " << */
-				}
+				Core::CORE->sock->finish(clk.getElapsedTime().asSeconds());
+				finish = true;
+				p.getDrawable().setColor(sf::Color::Transparent);
 			}
 		}
 	}

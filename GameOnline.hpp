@@ -15,7 +15,7 @@
 #include "Game.hpp"
 #include <unordered_map>
 #include <mutex>
-//#define RDEBUG
+
 struct data {
     float x = 0, y = 0;
     float x_speed = 0, y_speed = 0;
@@ -23,8 +23,8 @@ struct data {
     bool operator!=(const data& ot) {
         return x != ot.x || y != ot.y || x_speed != ot.x_speed || y_speed  != ot.y_speed;
     }
-    //bool dead;
 };
+
 namespace rpf {
 	class GameOnline : public Game {
 	public:
@@ -67,6 +67,7 @@ namespace rpf {
 		Portal* portal = nullptr;
 		int level = 0;
 		int px = -1, py = -1;
+		bool finish = false;
 		void init_level();
 		void init_bg();
 		void init_render();

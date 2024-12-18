@@ -8,7 +8,7 @@ namespace rpf {
 	SocketManager* Core::sock = nullptr;
 	int Core::highest_score = 0;
 
-	Core::Core() : mode(Mode::MAIN_MENU), rm(&window) {//mode(Mode::MAIN_MENU)
+	Core::Core() : mode(Mode::MAIN_MENU), rm(&window) {
 		window.create(sf::VideoMode(rh.s_width, rh.s_height), "Ryan PlatFormer v3.0", sf::Style::Resize | sf::Style::Close);
 		window.setFramerateLimit(60);
 		window.setKeyRepeatEnabled(false);

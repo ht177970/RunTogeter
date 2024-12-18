@@ -30,6 +30,9 @@ namespace rpf {
 				out << "bullet " << myid << " " << b->getX() << " " << b->getY() << " " << b->getSpeed() << std::endl;
 			}
 			game->bullets_out.clear();
+			if (time != 0 && myid != sock->server_fd) {
+				out << "finish " << myid << " " << time << std::endl;
+			}
 		}
 	}
 
@@ -134,10 +137,19 @@ namespace rpf {
 		GameOnline* game = Core::GAME;
 		int ti = 0;
 		while (game) {
+			if (firstEnd != 0 && std::time(NULL) - firstEnd > 10) {
+				break;
+			}
 			updatePlayer();
 			std::string receivedData = getline();
 			handleGamingMsgServer(receivedData);
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		}
+		std::sort(ends.begin(), ends.end());
+		int nth = 1;
+		std::cout << "Game Over! below is the ranking." << std::endl;
+		for (auto& [_time, id] : ends) {
+			std::cout << "Top" << nth++ << ": " << _time << "s by player" << id << std::endl;
 		}
 	}
 
@@ -196,6 +208,14 @@ namespace rpf {
 			std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
 			out << receivedData;
 			out.flush();
+		}
+		else if (msg == "finish") {
+			int id;
+			float _time;
+			handler >> id >> time;
+			ends.push_back({ id, _time });
+			if (firstEnd == 0)
+				firstEnd = std::time(NULL);
 		}
 	}
 
@@ -351,6 +371,15 @@ namespace rpf {
 	void SocketManager::quitRoom() {
 		std::lock_guard<std::mutex> lock(sock->sout_mutex);
 		out << "leave " << myid << std::endl;
+	}
+
+	void SocketManager::finish(float time) {
+		this->time = time;
+		if (myid == sock->server_fd) {//I am server
+			ends.push_back({ time, myid });
+			if (firstEnd == 0)
+				firstEnd = std::time(NULL);
+		}
 	}
 
 }
