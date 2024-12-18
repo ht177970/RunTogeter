@@ -109,6 +109,14 @@ namespace rpf {
 		void EnterPressed(int index);
 	};
 
+	class GameOverMulMenu : public ClickableMenu {
+	public:
+		explicit GameOverMulMenu(RenderManager* rm, ResourceHolder* rh);
+		~GameOverMulMenu() = default;
+		void initMenu();
+		void EnterPressed(int index);
+	};
+
 	class TextBox {
 	public:
 		TextBox(Pos position, sf::Font font, unsigned int size, RenderManager* rm);

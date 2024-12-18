@@ -366,6 +366,60 @@ namespace rpf {
 
 #pragma endregion
 
+#pragma region GameOverMulMenu
+
+	GameOverMulMenu::GameOverMulMenu(RenderManager* rm, ResourceHolder* rh) : ClickableMenu(rm, rh) {
+		this->rm = rm;
+		this->rh = rh;
+		this->initMenu();
+	}
+
+	void GameOverMulMenu::EnterPressed(int index) {
+		if (index == 0)
+			Core::CORE->switchMode(Mode::MAIN_MENU);
+		else if (index == 1)
+			Core::CORE->switchMode(Mode::CLOSED);
+	}
+
+	void GameOverMulMenu::initMenu() {
+		sf::RectangleShape* rect = new sf::RectangleShape(sf::Vector2f(rh->s_width, rh->s_height));
+		rect->setFillColor(sf::Color(0x00000088));
+		rect->setOrigin(rh->s_width / 2, 0);
+		rect->setPosition(rh->view->getCenter().x, 0);
+		rm->addGraphics(rect);
+
+		Pos text_position_0(rh->view->getCenter().x, rh->view->getCenter().y - rh->s_height / 3);
+
+		std::vector<std::pair<int, float>>& v = Core::CORE->results;
+		for (int i = 1; i <= v.size(); i++) {
+			int id = v[i - 1].first;
+			float _time = v[i - 1].second;
+			std::string txt = std::to_string(i) + ".Player" + std::to_string(id) + " " + std::to_string(_time) + "s";
+			sf::Text* text = new sf::Text(txt, rh->font);
+			text->setOrigin(text->getLocalBounds().width / 2, text->getLocalBounds().height / 2);
+			text->setPosition(text_position_0.x, text_position_0.y);
+			text_position_0.y += 50;
+			rm->addGraphics(text);
+		}
+
+		sf::String texts[] = { "Back to Menu", "Quit the game" };
+		Pos text_position(rh->view->getCenter().x, rh->view->getCenter().y + rh->s_height / 5);
+		unsigned int text_size;
+		text_size = 30U;
+		for (int i = 0; i < 2; i++) {
+			Text* tmp = new Text(texts[i], text_position.AddY(text_size * 2), rh->font);
+			tmp->setTextSize(30U);
+			tmp->setId(i);
+			tmp->setTextIndexPointer(&m_text_index);
+			m_clickable_texts.push_back(tmp);
+		}
+		for (Text* t : m_clickable_texts)
+			rm->addGraphics(&t->getDrawable());
+		m_text_index = 0;
+	}
+
+#pragma endregion
+
 #pragma region ConnectionMenu
 
 	ConnectionMenu::ConnectionMenu(RenderManager* rm, ResourceHolder* rh) : ClickableMenu(rm, rh) {

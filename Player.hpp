@@ -29,7 +29,7 @@ namespace rpf {
 		int id;
 		int lastspawn_x = 0, lastspawn_y = 0;
 		int lastview_x = 0, lastview_y = 0;
-		int life = 1;
+		int life = 3;
 		const float unit_speed = 7;//10
 		const int ani_speed = 3;
 		const int dead_delay = 60;

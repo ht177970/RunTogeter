@@ -38,6 +38,7 @@ namespace rpf {
 
 	int SocketManager::host() {
 		sock->host(55072);
+		std::cout << "host" << std::endl;
 		return myid = sock->server_fd;
 	}
 
@@ -149,8 +150,19 @@ namespace rpf {
 		int nth = 1;
 		std::cout << "Game Over! below is the ranking." << std::endl;
 		for (auto& [_time, id] : ends) {
-			std::cout << "Top" << nth++ << ": " << _time << "s by player" << id << std::endl;
+			std::cout << "Rk." << nth++ << ": " << _time << "s by player" << id << std::endl;
 		}
+		//send to all clients
+		out << "result " << ends.size() << " ";
+		for (auto& [_time, id] : ends) {
+			out << id << " " << _time << " ";
+		}
+		out << std::endl;
+		Core::CORE->results.clear();
+		for (auto& [_time, id] : ends) {
+			Core::CORE->results.push_back({ id,_time });
+		}
+		Core::CORE->switchModeAsync(Mode::GAME_OVER_MUL);
 	}
 
 	void SocketManager::handleGamingMsgServer(std::string receivedData) {
@@ -362,6 +374,18 @@ namespace rpf {
 					game->bullets_in.push_back(new Bullet(x, y, speed, game->rh));
 				}
 				std::lock_guard<std::mutex> lock_out(sock->sout_mutex);
+			}
+			else if (msg == "result") {
+				Core::CORE->results.clear();
+				int N;
+				in >> N;
+				for (int i = 0; i < N; i++) {
+					int id;
+					float _time;
+					in >> id >> _time;
+					Core::CORE->results.push_back({ id,_time });
+				}
+				Core::CORE->switchModeAsync(Mode::GAME_OVER_MUL);
 			}
 			msg = "";
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));

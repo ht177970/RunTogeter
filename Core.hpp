@@ -11,7 +11,7 @@
 
 namespace rpf {
 	enum Mode {
-		MAIN_MENU, CONNECTION_MENU, SINGLE_GAME, MULTI_GAME, GAME_OVER, CLOSED
+		MAIN_MENU, CONNECTION_MENU, SINGLE_GAME, MULTI_GAME, GAME_OVER, GAME_OVER_MUL, CLOSED
 	};
 
 	class Core {
@@ -27,6 +27,7 @@ namespace rpf {
 		void switchMode(Render* obj);
 		void switchModeAsync(Mode mode);
 		std::vector<int> joined, leaved;
+		std::vector<std::pair<int, float>> results;
 	private:
 		sf::RenderWindow window;
 		RenderManager rm;

@@ -259,9 +259,11 @@ namespace rpf {
 					  py == (int)(p.getDrawable().getGlobalBounds().top + 
 						  p.getDrawable().getGlobalBounds().height -
 						  map.getPosition().y) / rh->tile_size) {
-			p.score += (level + 1) * 400;
-			rh->view->move((toxs[nowp] - px) * 48, 0);
-			p.NEWspawn((toxs[nowp] - px) * 48, (toys[nowp] - py) * 48);
+			if (nowp < toxs.size()) {
+				p.score += (level + 1) * 400;
+				rh->view->move((toxs[nowp] - px) * 48, 0);
+				p.NEWspawn((toxs[nowp] - px) * 48, (toys[nowp] - py) * 48);
+			}
 			nowp++;
 			if (nowp < xs.size()) {
 				px = xs[nowp];

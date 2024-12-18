@@ -1,5 +1,6 @@
 #include "Player.hpp"
 #include "Game.hpp"
+#include "Core.hpp"
 #include <iostream>
 
 namespace rpf {
@@ -217,9 +218,11 @@ namespace rpf {
 	void Player::death_anim() {
 		if (anim_index == 10 * ani_speed * 2) {
 			if (life && delay++ == dead_delay) {
-				/*life--;
-				if (life == 0)
-					return;*/
+				if (!Core::CORE->GAME) {
+					life--;
+					if (life == 0)
+						return;
+				}
 				delay = anim_index = x_speed = y_speed = 0;
 				killed = flip = shooting = false;
 				current_sprite.setPosition(lastspawn_x, lastspawn_y);
