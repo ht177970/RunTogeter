@@ -5,6 +5,7 @@ namespace rpf {
 
 	Core* Core::CORE = nullptr;
 	GameOnline* Core::GAME = nullptr;
+	SocketManager* Core::sock = nullptr;
 	int Core::highest_score = 0;
 
 	Core::Core() : mode(Mode::MAIN_MENU), rm(&window) {//mode(Mode::MAIN_MENU)

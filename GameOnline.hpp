@@ -45,11 +45,12 @@ namespace rpf {
 		data player_data;
 		bool shoot = false;
 		bool dead = false;
+
+		ResourceHolder* rh;//
 	private:
 		int idnum = 1;
 		Player p;
 		RenderManager* rm;
-		ResourceHolder* rh;
 		Map map;
 		Map back_map;
 		IngameBar bar;
@@ -62,6 +63,7 @@ namespace rpf {
 		int nowp = 0;
 		std::vector<int> xs, ys;//add
 		std::vector<int> toxs, toys;//add
+		sf::Clock clk;
 		Portal* portal = nullptr;
 		int level = 0;
 		int px = -1, py = -1;

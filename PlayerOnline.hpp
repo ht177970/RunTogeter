@@ -14,24 +14,23 @@ namespace rpf {
 		bool isDead() { return killed; }
 		int getId() { return id; }
 		sf::Sprite& getDrawable() { return this->current_sprite; }
-	//private:
+		bool shooting = 0, killed = 0;
+		float x_speed = 0, y_speed = 0;
+		int anim_index = 0;
+	private:
 		int id;
-		const float unit_speed = 7;//10
+		const float unit_speed = 7;
 		const int ani_speed = 2;
-		const int dead_delay = 40;//TODO:to match respawn time
+		const int dead_delay = 40;
 		const float g = 0.8;
 		bool w_key = false;
 		bool space_key = false;
 		bool left_key = false;
 		bool right_key = false;
 		bool flip = false;
-		bool shooting = 0, killed = 0;
-		float x_speed = 0, y_speed = 0;
-		int anim_index = 0;
 		int delay = 0;
 		ResourceHolder* rh;
 		sf::Sprite current_sprite;
-		void shoot();
 		void check_face();
 		void death_anim();
 		void update_spr();

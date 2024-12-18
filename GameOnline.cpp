@@ -155,6 +155,7 @@ namespace rpf {
 			if (wait) {
 				wait = false;
 				this->setLvl(level);
+				clk.restart();
 			}
 			return;
 		}
@@ -335,10 +336,11 @@ namespace rpf {
 				py = ys[nowp];
 			}
 			else {
+
 				{
-					MySocket* sock = Core::CORE->sock;
+					/*MySocket* sock = Core::CORE->sock;
 					std::lock_guard<std::mutex> lock(sock->sout_mutex);
-					sock->sout << "end " << 
+					sock->sout << "end " << */
 				}
 			}
 		}

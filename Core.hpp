@@ -6,7 +6,8 @@
 #include "GameOnline.hpp"
 #include "RenderManager.hpp"
 #include "Menu.hpp"
-#include "MySocket.hpp"
+//#include "MySocket.hpp"
+#include "SocketManager.hpp"
 
 namespace rpf {
 	enum Mode {
@@ -17,6 +18,7 @@ namespace rpf {
 	public:
 		static Core* CORE;
 		static GameOnline* GAME;
+		static SocketManager* sock;
 		static int highest_score;
 		Core();
 		~Core() = default;
@@ -24,7 +26,6 @@ namespace rpf {
 		void switchMode(Mode mode);
 		void switchMode(Render* obj);
 		void switchModeAsync(Mode mode);
-		MySocket* sock;
 		std::vector<int> joined, leaved;
 	private:
 		sf::RenderWindow window;

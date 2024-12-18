@@ -17,4 +17,16 @@ namespace rpf {
 		ResourceHolder* rh;
 		float nowx;
 	};
+
+	class IngameMulBar {
+	public:
+		IngameMulBar(ResourceHolder* rh);
+		sf::RectangleShape panel;
+		sf::Sprite life;
+		sf::Text time;
+		void update(float time);
+	private:
+		ResourceHolder* rh;
+		float nowx;
+	};
 }

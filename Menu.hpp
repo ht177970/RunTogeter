@@ -58,17 +58,18 @@ namespace rpf {
 		void setTextIndexPointer(int* text_index);
 		void setTextSize(unsigned int size);
 		void setTextColor(sf::Color color);
-		virtual void TextChanged() {};
 		int getId();
+		virtual void TextChanged() {};
+		virtual void updateText();
 		virtual bool isPosIn(sf::Vector2i pos);
-		//protected:
+		sf::Text& getDrawable() { return grap; }
+	protected:
 		RenderManager* rm;
 		ResourceHolder* rh;
 		sf::Text grap;
 		sf::Font m_font;
 		int m_id;
 		int* index;
-		virtual void updateText();
 	};
 
 	class ClickableMenu : public Render {
@@ -116,7 +117,6 @@ namespace rpf {
 		void setPlaceholder(const sf::String& text);
 		sf::String getInputText() const;
 
-		// 提供接口以獲取內部圖形物件
 		sf::RectangleShape* getBox();
 		sf::Text* getInputTextGraphic();
 		sf::Text* getPlaceholderTextGraphic();
@@ -153,11 +153,11 @@ namespace rpf {
 		void EnterPressed(int index) override;
 		void update() override;
 		std::vector<int> joined, leaved;
-		int selfId; // 自己的編號
+		int selfId;
 		bool roomOwner = false;
 	private:
-		std::vector<int> players; // 所有玩家編號
-		std::vector<std::pair<int, sf::Text*>> playerTexts; // 用於顯示玩家的文字物件
+		std::vector<int> players;
+		std::vector<std::pair<int, sf::Text*>> playerTexts;
 		sf::Font m_font;
 
 		void renderPlayers();

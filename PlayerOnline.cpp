@@ -26,19 +26,11 @@ namespace rpf {
 
 	void PlayerOnline::update() {
 		if (!killed) {
-			//shoot();
 			check_face();
 			update_spr();
 		}
 		else {
 			death_anim();
-		}
-	}
-
-	void PlayerOnline::shoot() {
-		if (space_key && !shooting) {
-			shooting = true;
-			anim_index = 0;
 		}
 	}
 
